@@ -63,8 +63,8 @@ export async function POST(request: Request) {
       // Sandbox accounts turn Managed Payments on by default, which requires
       // product tax codes. LessonLeads stays the merchant of record.
       managed_payments: { enabled: false },
-      success_url: `${appUrl}/dashboard/settings?billing=success`,
-      cancel_url: `${appUrl}/pricing?checkout=canceled`,
+      success_url: `${appUrl}/dashboard/settings?billing=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${appUrl}/dashboard/settings?billing=canceled`,
       metadata: { organizationId: viewer.organizationId, plan },
       subscription_data: { metadata: { organizationId: viewer.organizationId, plan } },
     });

@@ -545,6 +545,21 @@ a:focus-visible {
 .usage-banner .eyebrow { margin-bottom: 4px; }
 .usage-banner p { margin: 0; }
 .usage-banner .button { flex-shrink: 0; }
+.billing-flash {
+  align-items: flex-start;
+  background: #e6f2e4;
+  border: 1px solid #b7d4b3;
+  border-radius: 13px;
+  color: #1d5230;
+  display: flex;
+  gap: 12px;
+  padding: 16px 18px;
+}
+.billing-flash svg { color: #226038; flex-shrink: 0; margin-top: 2px; }
+.billing-flash strong { display: block; font-size: 15px; margin-bottom: 3px; }
+.billing-flash p { font-size: 13px; line-height: 1.45; margin: 0; }
+.billing-flash-muted { background: #f3eee4; border-color: var(--line); color: var(--ink); }
+.billing-flash-muted svg { color: var(--muted); }
 .plan-gate { display: grid; gap: 12px; margin-bottom: 22px; }
 .plan-gate .button { width: fit-content; }
 .plan-card .button { margin-top: 10px; width: 100%; }
