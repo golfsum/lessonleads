@@ -105,6 +105,7 @@
   var config = {
     launcherText: script.getAttribute("data-label") || "",
     launcherIcon: "chat",
+    launcherStyle: "",
     color: "#185c36",
     position: script.getAttribute("data-position") || "bottom-right",
     size: "standard",
@@ -132,32 +133,65 @@
     return pos === "bottom_left" ? "left:" + offset + ";" : "right:" + offset + ";";
   }
 
+  function resolveUrl(value) {
+    if (!value) return "";
+    if (/^https?:\/\//i.test(value) || value.indexOf("data:") === 0) return value;
+    if (value.charAt(0) === "/") return base + value;
+    return base + "/" + value;
+  }
+
+  function launcherStyle() {
+    var style = config.launcherStyle;
+    if (style === "icon" || style === "icon_text" || style === "text") return style;
+    return config.launcherText ? "icon_text" : "icon";
+  }
+
   function renderLauncher() {
     launcher.replaceChildren();
-    if (config.logoUrl) {
-      var img = document.createElement("img");
-      img.src = config.logoUrl;
-      img.alt = "";
-      img.style.cssText = "width:22px;height:22px;object-fit:contain;border-radius:4px;background:rgba(255,255,255,.15);flex-shrink:0";
-      launcher.appendChild(img);
-    } else {
-      var iconWrap = document.createElement("span");
-      iconWrap.style.cssText = "display:flex;align-items:center";
-      iconWrap.innerHTML = ICONS[config.launcherIcon] || ICONS.chat;
-      launcher.appendChild(iconWrap);
+    var style = launcherStyle();
+    var hasText = !!config.launcherText;
+    var showText = (style === "text" || style === "icon_text") && hasText;
+    var showIcon = style !== "text" || !showText;
+
+    if (showIcon) {
+      if (config.logoUrl) {
+        var img = document.createElement("img");
+        img.src = config.logoUrl;
+        img.alt = "";
+        img.style.cssText = showText
+          ? "width:22px;height:22px;object-fit:cover;border-radius:6px;flex-shrink:0"
+          : "width:100%;height:100%;object-fit:cover;display:block";
+        launcher.appendChild(img);
+      } else {
+        var iconWrap = document.createElement("span");
+        iconWrap.style.cssText = "display:flex;align-items:center;color:#fff";
+        iconWrap.innerHTML = ICONS[config.launcherIcon] || ICONS.chat;
+        launcher.appendChild(iconWrap);
+      }
     }
-    if (config.launcherText) {
+    if (showText) {
       var label = document.createElement("span");
-      label.style.marginLeft = "8px";
+      if (showIcon) label.style.marginLeft = "8px";
+      label.style.color = "#fff";
       label.textContent = config.launcherText;
       launcher.appendChild(label);
     }
     launcher.setAttribute("aria-label", config.launcherText || "Open coaching assistant");
+    var iconOnly = showIcon && !showText;
+    var logoFill = iconOnly && !!config.logoUrl;
+    var shape;
+    if (iconOnly && logoFill) {
+      shape = "border-radius:16px;width:64px;height:64px;padding:0;overflow:hidden;background:transparent;";
+    } else if (iconOnly) {
+      shape = "border-radius:50%;width:56px;height:56px;padding:0;background:" + config.color + ";";
+    } else {
+      shape = "border-radius:999px;padding:14px 20px;background:" + config.color + ";";
+    }
     launcher.style.cssText =
       "position:fixed;z-index:2147483644;bottom:20px;" + positionCss("20px") +
       "display:flex;align-items:center;justify-content:center;border:0;cursor:pointer;" +
-      "background:" + config.color + ";color:#fff;font:600 14px/1 system-ui,sans-serif;" +
-      (config.launcherText ? "border-radius:999px;padding:14px 20px;" : "border-radius:50%;width:56px;height:56px;") +
+      "color:#fff !important;font:600 14px/1 system-ui,sans-serif;" +
+      shape +
       "box-shadow:0 10px 30px rgba(0,0,0,.24);transition:transform .15s ease";
   }
 
@@ -240,10 +274,11 @@
         var theme = data.widget.theme;
         if (theme.launcherText !== undefined) config.launcherText = theme.launcherText || "";
         if (theme.launcherIcon) config.launcherIcon = theme.launcherIcon;
+        if (theme.launcherStyle) config.launcherStyle = theme.launcherStyle;
         if (theme.primaryColor) config.color = theme.primaryColor;
         if (theme.position) config.position = theme.position;
         if (theme.size) config.size = theme.size;
-        if (theme.logoUrl) config.logoUrl = theme.logoUrl;
+        if (theme.logoUrl) config.logoUrl = resolveUrl(theme.logoUrl);
       }
     })
     .catch(function () {})

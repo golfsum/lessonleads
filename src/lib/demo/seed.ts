@@ -140,6 +140,7 @@ export function createDemoWorkspace(): WorkspaceData {
       welcomeMessage: "Hey, I'm Mike's coaching assistant. Tell me what you're struggling with and I'll point you in the right direction.",
       launcherText: "Ask Coach Mike",
       launcherIcon: "golf",
+      launcherStyle: "icon_text",
       position: "bottom_right",
       primaryColor: "#1b552c",
       accentColor: "#c8a24a",

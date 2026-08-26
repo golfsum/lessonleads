@@ -3,7 +3,7 @@
 import { ArrowDown, ArrowUp, Monitor, Plus, Smartphone, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import type { LauncherIcon, PublicWidget, WidgetMenuIcon, WidgetMenuItem, WidgetSectionKey, WidgetTheme } from "@/lib/domain/types";
+import type { LauncherIcon, LauncherStyle, PublicWidget, WidgetMenuIcon, WidgetMenuItem, WidgetSectionKey, WidgetTheme } from "@/lib/domain/types";
 import { GolfWidget } from "@/components/widget/golf-widget";
 import { LogoUrlField } from "@/components/widget/logo-url-field";
 
@@ -20,6 +20,44 @@ const standardSections: Array<{ key: WidgetSectionKey; title: string; icon: Widg
 ];
 
 const iconOptions: WidgetMenuIcon[] = ["chat", "flag", "video", "person", "target", "book", "question", "upload", "mail", "link"];
+
+const launcherIcons: Record<LauncherIcon, string> = {
+  chat: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+  flag: '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M5 21V4l11 3.5L5 11z"/></svg>',
+  golf: '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="9" r="6"/><ellipse cx="12" cy="20" rx="5" ry="1.6" opacity=".4"/></svg>',
+  help: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.6 2.24c-.7.35-1.1 1-1.1 1.76v.5"/><circle cx="12" cy="17" r=".6" fill="currentColor" stroke="none"/></svg>',
+};
+
+function LauncherPreview({ theme }: { theme: WidgetTheme }) {
+  const style = theme.launcherStyle ?? "icon_text";
+  const hasText = Boolean(theme.launcherText);
+  const showText = (style === "text" || style === "icon_text") && hasText;
+  const showIcon = style !== "text" || !showText;
+  const iconOnly = showIcon && !showText;
+  const logoFill = iconOnly && Boolean(theme.logoUrl);
+  const className = [
+    "launcher-preview-btn",
+    iconOnly ? "icon-only" : "pill",
+    logoFill ? "has-logo" : "",
+  ].filter(Boolean).join(" ");
+
+  return (
+    <div className="launcher-preview">
+      <span className="field-hint">Launcher preview</span>
+      <div className={className} style={logoFill ? undefined : { background: theme.primaryColor || theme.buttonColor }}>
+        {showIcon ? (
+          theme.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- coach-hosted logo URL
+            <img alt="" src={theme.logoUrl} />
+          ) : (
+            <span aria-hidden="true" dangerouslySetInnerHTML={{ __html: launcherIcons[theme.launcherIcon] }} />
+          )
+        ) : null}
+        {showText ? <span>{theme.launcherText}</span> : null}
+      </div>
+    </div>
+  );
+}
 
 export function WidgetBuilder({ publicWidget }: { publicWidget: PublicWidget }) {
   const router = useRouter();
@@ -122,18 +160,38 @@ export function WidgetBuilder({ publicWidget }: { publicWidget: PublicWidget }) 
         <section className="panel">
           <div className="panel-heading"><div><p className="eyebrow">Branding</p><h2>Make it feel like your coaching</h2></div></div>
           <div className="field-grid two">
-            <LogoUrlField onChange={(value) => setThemeField("logoUrl", value || undefined)} value={theme.logoUrl ?? ""} />
+            <LogoUrlField
+              hint="Used in the widget header. Also used on the launcher when the look includes an icon."
+              onChange={(value) => setThemeField("logoUrl", value || undefined)}
+              value={theme.logoUrl ?? ""}
+            />
             <label>Assistant name<input maxLength={60} onChange={(event) => setThemeField("assistantName", event.target.value)} value={theme.assistantName} placeholder="Ask Mike" /></label>
-            <label>Launcher button text<input maxLength={48} onChange={(event) => setThemeField("launcherText", event.target.value)} value={theme.launcherText} placeholder="Need help with your swing?" /></label>
-            <label className="span-two">Welcome message<textarea maxLength={400} onChange={(event) => setThemeField("welcomeMessage", event.target.value)} rows={3} value={theme.welcomeMessage} /></label>
-            <label>Launcher icon
-              <select onChange={(event) => setThemeField("launcherIcon", event.target.value as LauncherIcon)} value={theme.launcherIcon}>
-                <option value="chat">Chat bubble</option>
-                <option value="flag">Golf flag</option>
-                <option value="golf">Golf ball</option>
-                <option value="help">Question mark</option>
+            <label>Launcher look
+              <select onChange={(event) => setThemeField("launcherStyle", event.target.value as LauncherStyle)} value={theme.launcherStyle ?? "icon_text"}>
+                <option value="icon">Icon only</option>
+                <option value="icon_text">Icon and text</option>
+                <option value="text">Text only</option>
               </select>
             </label>
+            <label>Launcher text
+              <input maxLength={48} onChange={(event) => setThemeField("launcherText", event.target.value)} value={theme.launcherText} placeholder="Need help with your swing?" />
+              <small className="field-hint">Shown on the button for Icon and text or Text only. For Icon only, this is the accessible name.</small>
+            </label>
+            {(theme.launcherStyle ?? "icon_text") !== "text" ? (
+              <label>Launcher icon
+                <select onChange={(event) => setThemeField("launcherIcon", event.target.value as LauncherIcon)} value={theme.launcherIcon}>
+                  <option value="chat">Chat bubble</option>
+                  <option value="flag">Golf flag</option>
+                  <option value="golf">Golf ball</option>
+                  <option value="help">Question mark</option>
+                </select>
+                <small className="field-hint">Used when no site logo is set.</small>
+              </label>
+            ) : null}
+            <div className="span-two">
+              <LauncherPreview theme={theme} />
+            </div>
+            <label className="span-two">Welcome message<textarea maxLength={400} onChange={(event) => setThemeField("welcomeMessage", event.target.value)} rows={3} value={theme.welcomeMessage} /></label>
             <label>Position
               <select onChange={(event) => setThemeField("position", event.target.value as WidgetTheme["position"])} value={theme.position}>
                 <option value="bottom_right">Bottom right</option>

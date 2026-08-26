@@ -103,7 +103,11 @@ export function mapService(row: Record<string, unknown>): Service {
 }
 
 export function mapTheme(raw: unknown, firstName = "Coach"): WidgetTheme {
-  return { ...defaultTheme(firstName), ...asObject<Partial<WidgetTheme>>(raw, {}) };
+  const theme = { ...defaultTheme(firstName), ...asObject<Partial<WidgetTheme>>(raw, {}) };
+  if (theme.launcherStyle !== "icon" && theme.launcherStyle !== "icon_text" && theme.launcherStyle !== "text") {
+    theme.launcherStyle = "icon_text";
+  }
+  return theme;
 }
 
 export function mapMenu(raw: unknown, firstName = "Coach"): WidgetMenuItem[] {

@@ -47,7 +47,7 @@ export function MarketingFooter() {
           <strong>Company</strong>
           <Link href="/privacy">Privacy</Link>
           <Link href="/terms">Terms</Link>
-          <a href="mailto:hello@lessonleads.com">Contact</a>
+          <a href="mailto:support@lessonleads.com">Contact</a>
         </div>
       </div>
       <div className="page-width footer-bottom">

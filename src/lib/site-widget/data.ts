@@ -13,7 +13,7 @@ function signupUrl() {
   return "/signup";
 }
 
-const LOGO_PATH = "/icon.svg";
+const LOGO_PATH = "/logo.jpg";
 
 const now = "2026-08-26T00:00:00.000Z";
 
@@ -113,6 +113,7 @@ export function buildSiteWorkspace(): WorkspaceData {
         "The widget learns from the coach's public website, FAQ, and videos, then answers visitor questions, captures qualified leads, and sends golfers to the booking tool the coach already uses.",
         "LessonLeads is not a calendar, LMS, or payment system. Coaches keep Calendly, CoachNow, Acuity, Golf Genius, Square, Mindbody, or their own booking page.",
         "The core line: LessonLeads turns your golf website traffic into booked lessons.",
+        "Questions for the LessonLeads team go to support@lessonleads.com.",
       ].join(" "),
       0,
       `${origin}/`,
@@ -208,6 +209,12 @@ export function buildSiteWorkspace(): WorkspaceData {
       `Create a free account at lessonleads.com/signup. No card required. You can scan your site, preview the widget, and install when you are ready.`,
       5,
     ),
+    faq(
+      "faq_site_contact",
+      "How do I contact LessonLeads?",
+      "Email support@lessonleads.com. We can help with plans, install, and whether the widget fits your coaching site.",
+      6,
+    ),
   ];
 
   const services: Service[] = [
@@ -258,7 +265,7 @@ export function buildSiteWorkspace(): WorkspaceData {
       organizationId: SITE_ORG_ID,
       name: "LessonLeads",
       businessName: "LessonLeads",
-      email: "hello@lessonleads.com",
+      email: "support@lessonleads.com",
       website: "/",
       location: "Online, for golf coaches anywhere",
       timezone: "America/Phoenix",
@@ -292,8 +299,9 @@ export function buildSiteWorkspace(): WorkspaceData {
         assistantName: "Ask LessonLeads",
         welcomeMessage:
           "Hey, I'm the LessonLeads assistant. I can walk you through how the widget works, what's on each plan, and how to get it on your golf site.",
-        launcherText: "Ask about LessonLeads",
+        launcherText: "Ask LessonLeads",
         launcherIcon: "golf",
+        launcherStyle: "icon",
         position: "bottom_right",
         size: "standard",
         primaryColor: "#1b552c",

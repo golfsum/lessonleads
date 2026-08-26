@@ -19,8 +19,9 @@ const menuItem = z.object({
 const theme = z.object({
   assistantName: z.string().trim().min(2).max(60).optional(),
   welcomeMessage: z.string().trim().min(4).max(400).optional(),
-  launcherText: z.string().trim().min(2).max(48).optional(),
+  launcherText: z.string().trim().max(48).optional(),
   launcherIcon: z.enum(["chat", "flag", "golf", "help"]).optional(),
+  launcherStyle: z.enum(["icon", "icon_text", "text"]).optional(),
   position: z.enum(["bottom_right", "bottom_left"]).optional(),
   size: z.enum(["compact", "standard", "large"]).optional(),
   primaryColor: color.optional(),

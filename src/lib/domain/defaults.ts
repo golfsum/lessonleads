@@ -20,6 +20,7 @@ export function defaultTheme(firstName: string): WidgetTheme {
     welcomeMessage: `Hey, I'm ${name}'s coaching assistant. Tell me what you're struggling with and I'll point you in the right direction.`,
     launcherText: `Ask Coach ${name}`,
     launcherIcon: "golf",
+    launcherStyle: "icon_text",
     position: "bottom_right",
     size: "standard",
     primaryColor: "#1b552c",

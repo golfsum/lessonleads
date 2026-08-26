@@ -201,6 +201,11 @@ export function ContactSection({ controller }: { controller: WidgetController })
         >
           {product ? "Get started" : `Book with ${first}`}
         </button>
+        {product && coach.email ? (
+          <a className="gw-outline-button" href={`mailto:${coach.email}`}>
+            <MailIcon /> {coach.email}
+          </a>
+        ) : null}
         {coach.website ? (
           <a className="gw-outline-button" href={coach.website} target="_blank" rel="noopener noreferrer">
             <GlobeIcon /> Visit website

@@ -134,11 +134,15 @@ export interface WidgetMenuItem {
 
 export type LauncherIcon = "chat" | "flag" | "golf" | "help";
 
+export type LauncherStyle = "icon" | "icon_text" | "text";
+
 export interface WidgetTheme {
   assistantName: string;
   welcomeMessage: string;
   launcherText: string;
   launcherIcon: LauncherIcon;
+  /** How the floating launcher renders. Missing values are treated as icon_text. */
+  launcherStyle: LauncherStyle;
   position: "bottom_right" | "bottom_left";
   size?: "compact" | "standard" | "large";
   primaryColor: string;

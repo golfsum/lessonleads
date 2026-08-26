@@ -42,7 +42,10 @@ export const metadata: Metadata = {
       "An AI widget trained on your coaching content that answers questions, captures leads, and hands off to your booking system.",
     images: ["/og.png"],
   },
-  icons: { icon: "/icon.svg" },
+  icons: {
+    icon: [{ url: "/logo.jpg", type: "image/jpeg" }],
+    apple: "/apple-touch-icon.jpg",
+  },
 };
 
 export const viewport: Viewport = {

@@ -32,7 +32,6 @@
 
 .golf-widget button {
   font: inherit;
-  color: inherit;
   cursor: pointer;
 }
 
@@ -47,6 +46,13 @@
   background: var(--w-primary);
   color: #fff;
   flex-shrink: 0;
+}
+
+.golf-widget .gw-header,
+.golf-widget .gw-header strong,
+.golf-widget .gw-header small,
+.golf-widget .gw-header .gw-close {
+  color: #fff;
 }
 
 .gw-header-id {
@@ -65,7 +71,8 @@
 .gw-header-id small {
   display: block;
   font-size: 12px;
-  opacity: 0.82;
+  color: #fff;
+  opacity: 1;
 }
 
 .gw-avatar,
@@ -91,11 +98,12 @@
 }
 
 .gw-logo {
-  width: 38px;
-  height: 38px;
-  border-radius: 8px;
-  object-fit: contain;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  object-fit: cover;
   background: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.28);
   flex-shrink: 0;
 }
 
@@ -228,6 +236,11 @@
   background: var(--w-primary);
   color: #fff;
   border-bottom-right-radius: 4px;
+}
+
+.golf-widget .gw-button,
+.golf-widget .gw-send {
+  color: #fff;
 }
 
 .gw-bubble.error {
