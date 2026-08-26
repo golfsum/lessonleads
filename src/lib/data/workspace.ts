@@ -37,6 +37,24 @@ import {
   upsertDemoFaq,
   upsertDemoService,
 } from "@/lib/demo/store";
+import {
+  isSiteConversationId,
+  isSiteOrgId,
+  isSiteWidgetId,
+  isSiteWidgetPublicId,
+} from "@/lib/site-widget/ids";
+import {
+  appendSiteConversationTurn,
+  captureSiteLead,
+  countRecentSiteLeadsByFingerprint,
+  countSiteConversationsThisMonth,
+  countSiteLeadsThisMonth,
+  getSiteChatContext,
+  getSiteConversation,
+  getSitePublicWidget,
+  recordSiteEvent,
+  updateSiteConversationSummary,
+} from "@/lib/site-widget/store";
 
 async function supabase() {
   return import("@/lib/data/workspace-supabase");
@@ -160,31 +178,37 @@ export async function deleteContentItem(contentId: string) {
 // ---------- Public widget runtime ----------
 
 export async function getPublicWidget(publicIdOrSlug: string): Promise<PublicWidget | null> {
+  if (isSiteWidgetPublicId(publicIdOrSlug)) return getSitePublicWidget();
   if (isDemoMode()) return getDemoPublicWidget(publicIdOrSlug);
   return (await supabase()).getSupabasePublicWidget(publicIdOrSlug);
 }
 
 export async function getChatContext(publicIdOrSlug: string) {
+  if (isSiteWidgetPublicId(publicIdOrSlug)) return getSiteChatContext();
   if (isDemoMode()) return getDemoChatContext(publicIdOrSlug);
   return (await supabase()).getSupabaseChatContext(publicIdOrSlug);
 }
 
 export async function getConversation(conversationId: string) {
+  if (isSiteConversationId(conversationId)) return getSiteConversation(conversationId);
   if (isDemoMode()) return getDemoConversation(conversationId);
   return (await supabase()).getSupabaseConversation(conversationId);
 }
 
 export async function appendConversationTurn(input: Parameters<typeof appendDemoConversationTurn>[0]) {
+  if (isSiteWidgetId(input.widgetId)) return appendSiteConversationTurn(input);
   if (isDemoMode()) return appendDemoConversationTurn(input);
   return (await supabase()).appendSupabaseConversationTurn(input);
 }
 
 export async function updateConversationSummary(conversationId: string, summary: string) {
+  if (isSiteConversationId(conversationId)) return updateSiteConversationSummary(conversationId, summary);
   if (isDemoMode()) return updateDemoConversationSummary(conversationId, summary);
   return (await supabase()).updateSupabaseConversationSummary(conversationId, summary);
 }
 
 export async function capturePublicLead(input: Parameters<typeof captureDemoLead>[0]) {
+  if (isSiteWidgetPublicId(input.widgetPublicId)) return captureSiteLead(input);
   if (isDemoMode()) return captureDemoLead(input);
   return (await supabase()).captureSupabasePublicLead(input);
 }
@@ -195,6 +219,7 @@ export async function saveSwingUpload(input: Parameters<typeof saveDemoSwingUplo
 }
 
 export async function recordWidgetEvent(input: Parameters<typeof recordDemoEvent>[0]) {
+  if (isSiteWidgetId(input.widgetId)) return recordSiteEvent(input);
   if (isDemoMode()) return recordDemoEvent(input);
   return (await supabase()).recordSupabaseEvent(input);
 }
@@ -205,16 +230,19 @@ export async function recordBookingClick(token: string) {
 }
 
 export async function countRecentLeadsByFingerprint(fingerprint: string, minutes = 15) {
-  if (isDemoMode()) return countRecentDemoLeads(fingerprint, minutes);
-  return (await supabase()).countRecentSupabaseLeads(fingerprint, minutes);
+  const site = countRecentSiteLeadsByFingerprint(fingerprint, minutes);
+  if (isDemoMode()) return site + (await countRecentDemoLeads(fingerprint, minutes));
+  return site + (await (await supabase()).countRecentSupabaseLeads(fingerprint, minutes));
 }
 
 export async function countConversationsThisMonth(organizationId?: string) {
+  if (organizationId && isSiteOrgId(organizationId)) return countSiteConversationsThisMonth();
   if (isDemoMode()) return countDemoConversationsThisMonth(organizationId);
   return (await supabase()).countSupabaseConversationsThisMonth(organizationId);
 }
 
 export async function countLeadsThisMonth(organizationId?: string) {
+  if (organizationId && isSiteOrgId(organizationId)) return countSiteLeadsThisMonth();
   if (isDemoMode()) return countDemoLeadsThisMonth(organizationId);
   return (await supabase()).countSupabaseLeadsThisMonth(organizationId);
 }

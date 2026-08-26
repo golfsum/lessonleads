@@ -190,7 +190,11 @@ export function ChatSection({ controller }: { controller: WidgetController }) {
         <input
           type="text"
           value={input}
-          placeholder={`Ask about your game or ${data.coach.name.split(" ")[0]}'s coaching\u2026`}
+          placeholder={
+            data.coach.name === data.coach.businessName
+              ? `Ask about ${data.coach.businessName}\u2026`
+              : `Ask about your game or ${data.coach.name.split(" ")[0]}'s coaching\u2026`
+          }
           onChange={(event) => setInput(event.target.value)}
           maxLength={2000}
           aria-label="Your message"

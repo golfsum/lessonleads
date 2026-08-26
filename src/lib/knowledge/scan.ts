@@ -40,6 +40,7 @@ export interface WebsiteScanResult {
   detected: {
     siteName?: string;
     imageUrl?: string;
+    logoUrl?: string;
     themeColor?: string;
     socialLinks: ExtractedPage["socialLinks"];
     youtubeLinks: string[];
@@ -191,6 +192,7 @@ export async function scanWebsite(websiteUrl: string): Promise<WebsiteScanResult
 
     result.detected.siteName ??= extracted.siteName;
     result.detected.imageUrl ??= extracted.imageUrl;
+    result.detected.logoUrl ??= extracted.logoUrl;
     result.detected.themeColor ??= extracted.themeColor;
     for (const [key, value] of Object.entries(extracted.socialLinks)) {
       const socials = result.detected.socialLinks as Record<string, string | undefined>;

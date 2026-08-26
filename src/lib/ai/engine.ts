@@ -48,6 +48,15 @@ function firstName(coach: PublicCoach): string {
   return coach.name.split(" ")[0] || coach.name;
 }
 
+function isProductAssistant(coach: PublicCoach) {
+  return coach.name.trim().toLowerCase() === coach.businessName.trim().toLowerCase();
+}
+
+function aboutSubject(coach: PublicCoach): string {
+  if (isProductAssistant(coach)) return coach.name;
+  return `${firstName(coach)}'s coaching`;
+}
+
 function classifyMessage(message: string): MessageKind {
   const text = message.toLowerCase().trim();
   if (/^(hi|hello|hey|yo|howdy|good (morning|afternoon|evening))\b[.! ]*$/.test(text)) return "greeting";
@@ -186,7 +195,7 @@ export async function respond(input: EngineInput): Promise<EngineResult> {
   const activeFaqs = input.faqs.filter((faq) => faq.enabled);
 
   if (kind === "greeting") {
-    content = `Hey! I'm ${input.assistantName}. Tell me what you're struggling with, or ask me anything about ${coachFirst}'s coaching.`;
+    content = `Hey! I'm ${input.assistantName}. Tell me what you're struggling with, or ask me anything about ${aboutSubject(input.coach)}.`;
     suggestedReplies = input.suggestedQuestions.slice(0, 3);
   } else if (kind === "factual_business") {
     const result = answerFactual(input, profile, coachFirst);
@@ -284,7 +293,9 @@ export async function respond(input: EngineInput): Promise<EngineResult> {
       }
       suggestedReplies = input.suggestedQuestions.slice(0, 2);
     } else {
-      content = `I don't see that in ${coachFirst}'s coaching information. I can help you get in touch with ${coachFirst} directly, or you can ask me about lessons, his teaching, or what you're working on in your game.`;
+      content = isProductAssistant(input.coach)
+        ? `I don't see that in ${aboutSubject(input.coach)} yet. I can help you get in touch, or you can ask me about plans, how it works, or how to get the widget on your site.`
+        : `I don't see that in ${coachFirst}'s coaching information. I can help you get in touch with ${coachFirst} directly, or you can ask me about lessons, his teaching, or what you're working on in your game.`;
       cards.push({ kind: "contact", label: `Contact ${coachFirst}` });
       suggestedReplies = input.suggestedQuestions.slice(0, 3);
     }
@@ -401,10 +412,14 @@ function answerFactual(
         recommendedServiceId = best.id;
       }
       return {
-        content: `Here's ${coachFirst}'s current lineup:\n\n${summary}${best ? `\n\nBased on what you've told me, the ${best.name} is probably the best place to start.` : ""}`,
+        content: isProductAssistant(input.coach)
+          ? `Here's what ${input.coach.name} costs:\n\n${summary}${best ? `\n\nMost independent coaches start on ${best.name}.` : ""}`
+          : `Here's ${coachFirst}'s current lineup:\n\n${summary}${best ? `\n\nBased on what you've told me, the ${best.name} is probably the best place to start.` : ""}`,
         cards,
         sources,
-        suggestedReplies: ["Which lesson is right for me?", "Do you offer online coaching?"],
+        suggestedReplies: isProductAssistant(input.coach)
+          ? ["How do I get started?", "Will it work with Calendly?"]
+          : ["Which lesson is right for me?", "Do you offer online coaching?"],
         recommendedServiceId,
       };
     }
@@ -423,9 +438,11 @@ function answerFactual(
     const inPerson = activeServices.filter((service) => service.mode !== "online");
     const locationDetail = inPerson.find((service) => service.location)?.location;
     return {
-      content: `${coachFirst} teaches in ${input.coach.location}${locationDetail ? ` (${locationDetail})` : ""}.${
-        activeServices.some((service) => service.mode !== "in_person") ? ` He also works with golfers remotely through online coaching.` : ""
-      }`,
+      content: isProductAssistant(input.coach)
+        ? `${input.coach.name} is a web product. You add the widget to your golf site from anywhere.`
+        : `${coachFirst} teaches in ${input.coach.location}${locationDetail ? ` (${locationDetail})` : ""}.${
+            activeServices.some((service) => service.mode !== "in_person") ? ` He also works with golfers remotely through online coaching.` : ""
+          }`,
       cards,
       sources,
       suggestedReplies: ["Do you offer online coaching?", "Which lesson is right for me?"],
@@ -467,7 +484,9 @@ function answerFactual(
 
   cards.push({ kind: "contact", label: `Contact ${coachFirst}` });
   return {
-    content: `I don't see that information in ${coachFirst}'s coaching resources, and I'd rather not guess. I can help you contact ${coachFirst} directly.`,
+    content: isProductAssistant(input.coach)
+      ? `I don't see that in ${input.coach.name} yet, and I'd rather not guess. Ask me about plans, how it works, or how to install the widget.`
+      : `I don't see that information in ${coachFirst}'s coaching resources, and I'd rather not guess. I can help you contact ${coachFirst} directly.`,
     cards,
     sources,
     suggestedReplies: input.suggestedQuestions.slice(0, 2),

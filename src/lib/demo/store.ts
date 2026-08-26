@@ -475,6 +475,7 @@ export async function saveDemoOnboarding(input: {
   assistantName?: string;
   welcomeMessage?: string;
   primaryColor?: string;
+  logoUrl?: string;
 }) {
   return mutateDemoWorkspace((data) => {
     data.organization.name = input.businessName;
@@ -495,6 +496,9 @@ export async function saveDemoOnboarding(input: {
     if (input.primaryColor) {
       theme.primaryColor = input.primaryColor;
       theme.buttonColor = input.primaryColor;
+    }
+    if (input.logoUrl !== undefined) {
+      theme.logoUrl = input.logoUrl.trim() ? input.logoUrl.trim() : undefined;
     }
     theme.launcherText = `Ask Coach ${firstName}`;
     for (const item of data.widget.menu) {

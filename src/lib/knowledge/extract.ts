@@ -56,6 +56,7 @@ export interface ExtractedPage {
   socialLinks: { instagram?: string; youtube?: string; facebook?: string; x?: string; tiktok?: string };
   bookingLinks: string[];
   imageUrl?: string;
+  logoUrl?: string;
   themeColor?: string;
   siteName?: string;
   looksLikeFaq: boolean;
@@ -80,6 +81,7 @@ export function extractPage(html: string, pageUrl: string): ExtractedPage {
   const description = getMeta(html, "description") ?? getMeta(html, "og:description");
   const siteName = getMeta(html, "og:site_name");
   const imageUrl = getMeta(html, "og:image");
+  const logoUrl = extractLogoUrl(html, pageUrl);
   const themeColor = getMeta(html, "theme-color");
 
   // Collect links from the full document before stripping chrome.
@@ -154,11 +156,43 @@ export function extractPage(html: string, pageUrl: string): ExtractedPage {
     youtubeLinks: [...new Set(youtubeLinks)],
     socialLinks,
     bookingLinks: [...new Set(bookingLinks)],
-    imageUrl,
+    imageUrl: imageUrl ? resolveAssetUrl(imageUrl, pageUrl) : undefined,
+    logoUrl,
     themeColor,
     siteName,
     looksLikeFaq,
   };
+}
+
+export function resolveAssetUrl(href: string, pageUrl: string): string | undefined {
+  try {
+    const url = new URL(href, pageUrl);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return undefined;
+    return url.toString();
+  } catch {
+    return undefined;
+  }
+}
+
+/** Prefer a real site mark over a social share photo. */
+export function extractLogoUrl(html: string, pageUrl: string): string | undefined {
+  const patterns = [
+    /<link[^>]+rel=["'][^"']*apple-touch-icon[^"']*["'][^>]*href=["']([^"']+)["'][^>]*>/i,
+    /<link[^>]+href=["']([^"']+)["'][^>]*rel=["'][^"']*apple-touch-icon[^"']*["'][^>]*>/i,
+    /<img[^>]*(?:class|id|alt)=["'][^"']*logo[^"']*["'][^>]*src=["']([^"']+)["'][^>]*>/i,
+    /<img[^>]*src=["']([^"']+)["'][^>]*(?:class|id|alt)=["'][^"']*logo[^"']*["'][^>]*>/i,
+    /<link[^>]+rel=["'](?:shortcut icon|icon)["'][^>]*href=["']([^"']+)["'][^>]*>/i,
+    /<link[^>]+href=["']([^"']+)["'][^>]*rel=["'](?:shortcut icon|icon)["'][^>]*>/i,
+  ];
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    if (!match?.[1]) continue;
+    const resolved = resolveAssetUrl(decodeEntities(match[1]), pageUrl);
+    if (!resolved) continue;
+    if (/\.ico(\?|$)/i.test(resolved)) continue;
+    return resolved;
+  }
+  return undefined;
 }
 
 function dedupeBlocks(blocks: ExtractedBlock[]): ExtractedBlock[] {

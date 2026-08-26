@@ -8,7 +8,7 @@ const schema = z.object({
   businessName: z.string().trim().min(2).max(120),
   email: z.email(),
   website: z.string().trim().max(240).optional(),
-  location: z.string().trim().min(2).max(160),
+  location: z.string().trim().max(160),
   timezone: z.string().trim().min(2).max(80),
   bookingProvider: z.enum(["coachnow", "golf_genius", "calendly", "acuity", "square", "mindbody", "custom", "none"]),
   bookingUrl: z.string().trim().max(500),
@@ -16,6 +16,7 @@ const schema = z.object({
   assistantName: z.string().trim().max(60).optional(),
   welcomeMessage: z.string().trim().max(400).optional(),
   primaryColor: z.string().regex(/^#[0-9a-f]{6}$/i).optional(),
+  logoUrl: z.union([z.url().max(500), z.literal("")]).optional(),
 });
 
 export async function POST(request: Request) {

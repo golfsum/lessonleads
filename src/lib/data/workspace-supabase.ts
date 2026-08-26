@@ -199,6 +199,7 @@ export const saveSupabaseOnboarding: Mirror<typeof saveDemoOnboarding> = async (
           launcherText: `Ask Coach ${first}`,
           primaryColor: input.primaryColor || current.theme.primaryColor,
           buttonColor: input.primaryColor || current.theme.buttonColor,
+          logoUrl: input.logoUrl !== undefined ? (input.logoUrl.trim() ? input.logoUrl.trim() : undefined) : current.theme.logoUrl,
         },
         updated_at: new Date().toISOString(),
       })

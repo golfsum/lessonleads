@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { LauncherIcon, PublicWidget, WidgetMenuIcon, WidgetMenuItem, WidgetSectionKey, WidgetTheme } from "@/lib/domain/types";
 import { GolfWidget } from "@/components/widget/golf-widget";
+import { LogoUrlField } from "@/components/widget/logo-url-field";
 
 const standardSections: Array<{ key: WidgetSectionKey; title: string; icon: WidgetMenuIcon }> = [
   { key: "ask", title: "Ask", icon: "chat" },
@@ -121,6 +122,7 @@ export function WidgetBuilder({ publicWidget }: { publicWidget: PublicWidget }) 
         <section className="panel">
           <div className="panel-heading"><div><p className="eyebrow">Branding</p><h2>Make it feel like your coaching</h2></div></div>
           <div className="field-grid two">
+            <LogoUrlField onChange={(value) => setThemeField("logoUrl", value || undefined)} value={theme.logoUrl ?? ""} />
             <label>Assistant name<input maxLength={60} onChange={(event) => setThemeField("assistantName", event.target.value)} value={theme.assistantName} placeholder="Ask Mike" /></label>
             <label>Launcher button text<input maxLength={48} onChange={(event) => setThemeField("launcherText", event.target.value)} value={theme.launcherText} placeholder="Need help with your swing?" /></label>
             <label className="span-two">Welcome message<textarea maxLength={400} onChange={(event) => setThemeField("welcomeMessage", event.target.value)} rows={3} value={theme.welcomeMessage} /></label>
@@ -157,8 +159,7 @@ export function WidgetBuilder({ publicWidget }: { publicWidget: PublicWidget }) 
                 <option value="large">Large</option>
               </select>
             </label>
-            <label className="span-two">Logo URL (optional)<input maxLength={500} onChange={(event) => setThemeField("logoUrl", event.target.value || undefined)} type="url" value={theme.logoUrl ?? ""} placeholder="https://yoursite.com/logo.png" /></label>
-            <label className="span-two">Coach avatar URL (optional)<input maxLength={500} onChange={(event) => setThemeField("coachAvatarUrl", event.target.value || undefined)} type="url" value={theme.coachAvatarUrl ?? ""} placeholder="https://yoursite.com/photo.jpg" /></label>
+            <label className="span-two">Coach photo URL (optional)<input maxLength={500} onChange={(event) => setThemeField("coachAvatarUrl", event.target.value || undefined)} type="url" value={theme.coachAvatarUrl ?? ""} placeholder="https://yoursite.com/photo.jpg" /></label>
             <label className="span-two">Assistant avatar URL (optional)<input maxLength={500} onChange={(event) => setThemeField("assistantAvatarUrl", event.target.value || undefined)} type="url" value={theme.assistantAvatarUrl ?? ""} placeholder="https://yoursite.com/assistant.png" /></label>
             <label className="span-two">Suggested questions (one per line, up to 6)<textarea onChange={(event) => setSuggested(event.target.value)} rows={4} value={suggested} /></label>
           </div>

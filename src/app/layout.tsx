@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { DM_Sans, Newsreader } from "next/font/google";
+import { SiteWidgetScript } from "@/components/marketing/site-widget-script";
 import "./globals.css";
 
 const sans = DM_Sans({
@@ -54,7 +55,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html data-scroll-behavior="smooth" lang="en" className={`${sans.variable} ${display.variable}`}>
-      <body>{children}</body>
+      <body>
+        {children}
+        <SiteWidgetScript />
+      </body>
     </html>
   );
 }

@@ -83,7 +83,13 @@ export function GolfWidget({ data, embedded = false, preview = false }: { data: 
         });
       }
       const url = service?.bookingUrl || data.coach.bookingUrl;
-      if (url) window.open(url, "_blank", "noopener");
+      if (url) {
+        try {
+          window.open(new URL(url, window.location.origin).toString(), "_blank", "noopener");
+        } catch {
+          window.open(url, "_blank", "noopener");
+        }
+      }
     },
     onVideoView: (contentId, url) => {
       if (!preview) {
@@ -123,7 +129,10 @@ export function GolfWidget({ data, embedded = false, preview = false }: { data: 
     <div className={`golf-widget ${theme.appearance === "dark" ? "gw-dark" : ""}`} style={themeVars(data)}>
       <header className="gw-header">
         <div className="gw-header-id">
-          {theme.coachAvatarUrl || theme.assistantAvatarUrl || data.coach.profilePhotoUrl ? (
+          {theme.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- coach-hosted image URL, not optimizable
+            <img src={theme.logoUrl} alt="" className="gw-logo" />
+          ) : theme.coachAvatarUrl || theme.assistantAvatarUrl || data.coach.profilePhotoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element -- coach-hosted image URL, not optimizable
             <img src={theme.assistantAvatarUrl || theme.coachAvatarUrl || data.coach.profilePhotoUrl} alt="" className="gw-avatar-img" />
           ) : (

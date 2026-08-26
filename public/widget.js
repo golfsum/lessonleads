@@ -108,6 +108,7 @@
     color: "#185c36",
     position: script.getAttribute("data-position") || "bottom-right",
     size: "standard",
+    logoUrl: "",
   };
 
   var ICONS = {
@@ -120,6 +121,9 @@
   var launcher = document.createElement("button");
   var panel = document.createElement("div");
   var backdrop = document.createElement("div");
+  launcher.setAttribute("data-lessonleads-root", "launcher");
+  panel.setAttribute("data-lessonleads-root", "panel");
+  backdrop.setAttribute("data-lessonleads-root", "backdrop");
   var frame = null;
   var open = false;
 
@@ -129,10 +133,25 @@
   }
 
   function renderLauncher() {
-    var icon = ICONS[config.launcherIcon] || ICONS.chat;
-    launcher.innerHTML = config.launcherText
-      ? icon + '<span style="margin-left:8px">' + escapeHtml(config.launcherText) + "</span>"
-      : icon;
+    launcher.replaceChildren();
+    if (config.logoUrl) {
+      var img = document.createElement("img");
+      img.src = config.logoUrl;
+      img.alt = "";
+      img.style.cssText = "width:22px;height:22px;object-fit:contain;border-radius:4px;background:rgba(255,255,255,.15);flex-shrink:0";
+      launcher.appendChild(img);
+    } else {
+      var iconWrap = document.createElement("span");
+      iconWrap.style.cssText = "display:flex;align-items:center";
+      iconWrap.innerHTML = ICONS[config.launcherIcon] || ICONS.chat;
+      launcher.appendChild(iconWrap);
+    }
+    if (config.launcherText) {
+      var label = document.createElement("span");
+      label.style.marginLeft = "8px";
+      label.textContent = config.launcherText;
+      launcher.appendChild(label);
+    }
     launcher.setAttribute("aria-label", config.launcherText || "Open coaching assistant");
     launcher.style.cssText =
       "position:fixed;z-index:2147483644;bottom:20px;" + positionCss("20px") +
@@ -195,12 +214,6 @@
     if (open) setOpen(true);
   });
 
-  function escapeHtml(value) {
-    return value.replace(/[&<>"']/g, function (char) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char];
-    });
-  }
-
   function boot() {
     renderLauncher();
     stylePanel();
@@ -230,6 +243,7 @@
         if (theme.primaryColor) config.color = theme.primaryColor;
         if (theme.position) config.position = theme.position;
         if (theme.size) config.size = theme.size;
+        if (theme.logoUrl) config.logoUrl = theme.logoUrl;
       }
     })
     .catch(function () {})

@@ -154,7 +154,7 @@ export function CoachSection({ controller }: { controller: WidgetController }) {
         </ul>
       ) : null}
       <button type="button" className="gw-button" onClick={() => controller.onBookingClick()}>
-        Book with {coach.name.split(" ")[0]}
+        {coach.name === coach.businessName ? "Get started" : `Book with ${coach.name.split(" ")[0]}`}
       </button>
     </div>
   );
@@ -183,12 +183,13 @@ export function FaqSection({ controller }: { controller: WidgetController }) {
 
 export function ContactSection({ controller }: { controller: WidgetController }) {
   const coach = controller.data.coach;
+  const product = coach.name === coach.businessName;
   const first = coach.name.split(" ")[0];
   const socials = Object.entries(coach.socialLinks).filter(([, url]) => Boolean(url)) as Array<[string, string]>;
   return (
     <div className="gw-section gw-contact">
-      <h2>Get in touch with {first}</h2>
-      <p>Send a message about lessons, your game, or anything else.</p>
+      <h2>{product ? `Talk to ${coach.name}` : `Get in touch with ${first}`}</h2>
+      <p>{product ? "Questions about plans, install, or whether this fits your coaching site." : "Send a message about lessons, your game, or anything else."}</p>
       <div className="gw-contact-actions">
         <button
           type="button"
@@ -198,7 +199,7 @@ export function ContactSection({ controller }: { controller: WidgetController })
             controller.onBookingClick();
           }}
         >
-          Book with {first}
+          {product ? "Get started" : `Book with ${first}`}
         </button>
         {coach.website ? (
           <a className="gw-outline-button" href={coach.website} target="_blank" rel="noopener noreferrer">

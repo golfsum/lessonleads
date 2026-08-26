@@ -3,6 +3,7 @@
 import { ArrowLeft, ArrowRight, Check, Globe, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { LogoUrlField } from "@/components/widget/logo-url-field";
 import type { BookingProvider, WidgetSectionKey } from "@/lib/domain/types";
 
 const steps = ["Website", "Features", "Branding", "Booking", "Finish"];
@@ -13,6 +14,7 @@ interface ScanSummary {
   detected: {
     siteName?: string;
     imageUrl?: string;
+    logoUrl?: string;
     themeColor?: string;
     youtubeLinks: string[];
     bookingLinks: string[];
@@ -39,6 +41,12 @@ const providers: Array<{ value: BookingProvider; label: string }> = [
   { value: "custom", label: "Custom booking site" },
   { value: "none", label: "No online booking yet" },
 ];
+
+function listPhrase(items: string[]) {
+  if (items.length === 1) return items[0];
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+}
 
 function isHexColor(value: string | undefined): value is string {
   return Boolean(value && /^#[0-9a-f]{6}$/i.test(value));
@@ -73,6 +81,8 @@ export function OnboardingFlow({ defaults }: { defaults: { coachName: string; bu
   const [assistantName, setAssistantName] = useState("");
   const [welcomeMessage, setWelcomeMessage] = useState("");
   const [primaryColor, setPrimaryColor] = useState("#1b552c");
+  const [logoUrl, setLogoUrl] = useState("");
+  const [missingFields, setMissingFields] = useState<string[]>([]);
 
   const [bookingProvider, setBookingProvider] = useState<BookingProvider>("calendly");
   const [bookingUrl, setBookingUrl] = useState("");
@@ -100,6 +110,7 @@ export function OnboardingFlow({ defaults }: { defaults: { coachName: string; bu
       // Pre-fill branding from what the site told us; the coach confirms in step 3.
       if (summary.detected.siteName && businessName === defaults.businessName) setBusinessName(summary.detected.siteName.slice(0, 120));
       if (isHexColor(summary.detected.themeColor)) setPrimaryColor(summary.detected.themeColor);
+      if (summary.detected.logoUrl) setLogoUrl(summary.detected.logoUrl);
       if (summary.detected.bookingLinks[0]) {
         setBookingUrl(summary.detected.bookingLinks[0]);
         setBookingProvider(detectProvider(summary.detected.bookingLinks[0]));
@@ -115,16 +126,17 @@ export function OnboardingFlow({ defaults }: { defaults: { coachName: string; bu
     setPending(true);
     setError("");
     const enabledSections = featureOptions.map((option) => option.key).filter((key) => sections[key]);
-    const firstName = coachName.split(" ")[0] || "your coach";
+    const name = coachName.trim() || defaults.coachName || "Coach";
+    const firstName = name.split(" ")[0] || "your coach";
     const response = await fetch("/api/onboarding", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        coachName,
-        businessName,
-        email,
+        coachName: name,
+        businessName: businessName.trim() || defaults.businessName || name,
+        email: email.trim() || defaults.email,
         website: website.trim() || undefined,
-        location,
+        location: location.trim(),
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         bookingProvider,
         bookingUrl: bookingProvider === "none" ? "" : bookingUrl,
@@ -134,6 +146,7 @@ export function OnboardingFlow({ defaults }: { defaults: { coachName: string; bu
           welcomeMessage.trim() ||
           `Hey, I'm ${firstName}'s coaching assistant. Tell me what you're struggling with and I'll point you in the right direction.`,
         primaryColor,
+        logoUrl: logoUrl.trim(),
       }),
     });
     const payload = (await response.json().catch(() => ({}))) as { error?: string };
@@ -146,15 +159,43 @@ export function OnboardingFlow({ defaults }: { defaults: { coachName: string; bu
     router.refresh();
   }
 
+  function brandingGaps() {
+    const missing: string[] = [];
+    if (!coachName.trim()) missing.push("name");
+    if (!businessName.trim()) missing.push("business name");
+    if (!email.trim()) missing.push("email");
+    if (!location.trim()) missing.push("location");
+    return missing;
+  }
+
+  function skipBranding() {
+    setError("");
+    setMissingFields([]);
+    setStep(3);
+  }
+
+  function markFilled(field: string) {
+    setMissingFields((current) => current.filter((item) => item !== field));
+  }
+
   function next() {
     setError("");
+    setMissingFields([]);
     if (step === 0 && !scan && !skippedScan && website.trim()) {
       // They typed a URL but never scanned — scan on continue so the widget has knowledge.
       void runScan().then(() => setStep(1));
       return;
     }
-    if (step === 2 && (!coachName.trim() || !businessName.trim() || !email.trim() || !location.trim())) {
-      setError("Fill in your name, business, email, and location.");
+    if (step === 2) {
+      const missing = brandingGaps();
+      if (missing.length > 0) {
+        setMissingFields(missing);
+        setError(`Add your ${listPhrase(missing)}.`);
+        return;
+      }
+    }
+    if (step === 2 && logoUrl.trim() && !/^https?:\/\//i.test(logoUrl.trim())) {
+      setError("Logo should be a full URL starting with https://, or leave it blank.");
       return;
     }
     if (step === 3 && bookingProvider !== "none" && !/^https:\/\//.test(bookingUrl.trim())) {
@@ -207,6 +248,7 @@ export function OnboardingFlow({ defaults }: { defaults: { coachName: string; bu
                 <li><Check size={15} /> {scan.pagesIndexed} readable page{scan.pagesIndexed === 1 ? "" : "s"}</li>
                 {scan.pages.some((page) => page.faqCount > 0) ? <li><Check size={15} /> An FAQ ({scan.pages.reduce((total, page) => total + page.faqCount, 0)} questions)</li> : null}
                 {scan.detected.siteName ? <li><Check size={15} /> Your business name: {scan.detected.siteName}</li> : null}
+                {scan.detected.logoUrl ? <li><Check size={15} /> Site logo</li> : null}
                 {scan.detected.youtubeLinks.length > 0 ? <li><Check size={15} /> A YouTube channel link</li> : null}
                 {scan.detected.bookingLinks.length > 0 ? <li><Check size={15} /> A booking link</li> : null}
               </ul>
@@ -250,12 +292,13 @@ export function OnboardingFlow({ defaults }: { defaults: { coachName: string; bu
           <h1>Make it yours.</h1>
           <p>{scan ? "We pre-filled what we detected — fix anything that's off." : "This is how the widget introduces your coaching."}</p>
           <div className="field-grid two">
-            <label>Your name<input maxLength={100} onChange={(event) => setCoachName(event.target.value)} required value={coachName} /></label>
-            <label>Business or academy<input maxLength={120} onChange={(event) => setBusinessName(event.target.value)} required value={businessName} /></label>
-            <label>Email<input onChange={(event) => setEmail(event.target.value)} required type="email" value={email} /></label>
-            <label>Location<input maxLength={160} onChange={(event) => setLocation(event.target.value)} required value={location} placeholder="Tucson, Arizona" /></label>
+            <label className={missingFields.includes("name") ? "field-missing" : undefined}>Your name<input maxLength={100} onChange={(event) => { setCoachName(event.target.value); markFilled("name"); }} value={coachName} /></label>
+            <label className={missingFields.includes("business name") ? "field-missing" : undefined}>Business or academy<input maxLength={120} onChange={(event) => { setBusinessName(event.target.value); markFilled("business name"); }} value={businessName} /></label>
+            <label className={missingFields.includes("email") ? "field-missing" : undefined}>Email<input onChange={(event) => { setEmail(event.target.value); markFilled("email"); }} type="email" value={email} /></label>
+            <label className={missingFields.includes("location") ? "field-missing" : undefined}>Location<input maxLength={160} onChange={(event) => { setLocation(event.target.value); markFilled("location"); }} value={location} placeholder="Tucson, Arizona" /></label>
             <label>Assistant name<input maxLength={60} onChange={(event) => setAssistantName(event.target.value)} value={assistantName} placeholder={`Ask ${coachName.split(" ")[0] || "Coach"}`} /></label>
             <label>Brand color<input onChange={(event) => setPrimaryColor(event.target.value)} type="color" value={primaryColor} /></label>
+            <LogoUrlField onChange={setLogoUrl} value={logoUrl} />
             <label className="span-two">Welcome message
               <textarea
                 maxLength={400}
@@ -266,6 +309,9 @@ export function OnboardingFlow({ defaults }: { defaults: { coachName: string; bu
               />
             </label>
           </div>
+          <button className="text-button skip-link" onClick={skipBranding} type="button">
+            Skip for now. You can finish this in Settings.
+          </button>
         </div>
       ) : null}
 
