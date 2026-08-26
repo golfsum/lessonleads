@@ -20,3 +20,20 @@ export function planFromStripePriceId(priceId: string | undefined): "solo" | "pr
   if (priceId === process.env.STRIPE_SOLO_PRICE_ID) return "solo";
   return "free";
 }
+
+export function isStripeError(error: unknown): error is Stripe.errors.StripeError {
+  return Boolean(error && typeof error === "object" && "type" in error);
+}
+
+export function stripeErrorMessage(error: unknown) {
+  if (isStripeError(error) && error.message) return error.message.slice(0, 280);
+  if (error instanceof Error && error.message) return error.message.slice(0, 280);
+  return "Could not start checkout.";
+}
+
+export function isMissingStripeCustomer(error: unknown) {
+  if (!isStripeError(error) || error.code !== "resource_missing") return false;
+  const param = "param" in error ? String(error.param ?? "") : "";
+  const message = (error.message ?? "").toLowerCase();
+  return param === "customer" || param.startsWith("cus_") || message.includes("no such customer");
+}
