@@ -2,7 +2,7 @@ import "server-only";
 
 import { Resend } from "resend";
 import type { CoachProfile, Lead } from "@/lib/domain/types";
-import { newLeadEmail, swingUploadEmail } from "@/lib/email/templates";
+import { accountEmail, newLeadEmail, swingUploadEmail } from "@/lib/email/templates";
 import { isDemoMode } from "@/lib/demo/store";
 
 function resendReady() {
@@ -38,6 +38,16 @@ export async function sendNewLeadNotification(input: { lead: Lead; coach: CoachP
     leadUrl: `${appUrl}/dashboard/leads/${lead.id}`,
   });
   await deliver(coach.email, template);
+  return { sent: true } as const;
+}
+
+export async function sendAccountEmail(input: {
+  to: string;
+  kind: "welcome" | "verification" | "password_reset";
+  actionUrl: string;
+}) {
+  if (isDemoMode() || !resendReady()) return { sent: false, reason: "not_configured" } as const;
+  await deliver(input.to, accountEmail(input.kind, input.actionUrl));
   return { sent: true } as const;
 }
 
