@@ -7,7 +7,9 @@ export async function POST(request: Request) {
   const email = String(form.get("email") ?? "");
   if (!isDemoMode() && email) {
     const supabase = await createSupabaseServerClient();
-    await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/update-password` });
+    await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: new URL("/auth/update-password", request.url).toString(),
+    });
   }
   return NextResponse.redirect(new URL("/login?reset=sent", request.url), 303);
 }

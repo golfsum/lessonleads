@@ -12,7 +12,10 @@ export async function POST(request: Request) {
   const { error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
-    options: { data: { full_name: parsed.data.name }, emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback` },
+    options: {
+      data: { full_name: parsed.data.name },
+      emailRedirectTo: new URL("/auth/callback", request.url).toString(),
+    },
   });
   if (error) return Response.json({ error: error.message }, { status: 400 });
   return Response.json({ redirectTo: "/onboarding?verify=1" });
