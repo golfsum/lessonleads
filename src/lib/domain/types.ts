@@ -437,6 +437,7 @@ export interface PublicCoach {
   bookingUrl: string;
   profilePhotoUrl?: string;
   website?: string;
+  email?: string;
 }
 
 export interface PublicWidget {

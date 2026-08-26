@@ -333,6 +333,7 @@ export function toPublicWidget(data: WorkspaceData): PublicWidget {
       bookingUrl: coach.bookingUrl,
       profilePhotoUrl: coach.profilePhotoUrl,
       website: coach.website,
+      email: coach.email.trim() || undefined,
     },
     services: data.services.filter((service) => service.active).sort((a, b) => a.sortOrder - b.sortOrder),
     contentItems: data.contentItems.filter((item) => item.active).sort((a, b) => a.sortOrder - b.sortOrder),
