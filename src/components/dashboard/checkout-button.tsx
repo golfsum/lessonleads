@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { plans, type PlanId } from "@/lib/billing/plans";
+import { isPaidPlanId, planRank, plans, type PaidPlanId, type PlanId } from "@/lib/billing/plans";
 
 export function CheckoutButton({
   currentPlan,
@@ -9,13 +9,13 @@ export function CheckoutButton({
   label,
 }: {
   currentPlan: string;
-  targetPlan?: "solo" | "pro";
+  targetPlan?: PaidPlanId;
   label?: string;
 }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
-  const paid = currentPlan === "solo" || currentPlan === "pro";
-  const managing = paid && (targetPlan === currentPlan || currentPlan === "pro");
+  const paid = isPaidPlanId(currentPlan);
+  const managing = paid && (targetPlan === currentPlan || planRank(currentPlan) >= planRank(targetPlan));
 
   async function open() {
     setPending(true);

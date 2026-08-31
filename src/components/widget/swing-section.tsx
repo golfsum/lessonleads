@@ -96,11 +96,11 @@ export function SwingSection({ controller }: { controller: WidgetController }) {
         </span>
         <h2>Swing received</h2>
         <p>
-          {coachFirst} will take a look. {detailsSaved || leadCaptured ? "You'll hear back by email." : `Leave your email in the chat so ${coachFirst} can reply.`}
+          {coachFirst} will take a look. {detailsSaved || leadCaptured ? "You’ll hear back by email." : `Leave your email in the chat so ${coachFirst} can reply.`}
         </p>
         {data.services.some((service) => service.mode !== "in_person") ? (
           <button type="button" className="gw-button" onClick={() => controller.openSection("lessons")}>
-            See {coachFirst}'s lessons
+            See {coachFirst}&apos;s lessons
           </button>
         ) : null}
       </div>

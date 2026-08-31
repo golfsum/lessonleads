@@ -9,6 +9,15 @@ export function formatPrice(service: Pick<Service, "priceCents" | "priceLabel">)
   return "Contact for pricing";
 }
 
+/** Return a new list ordered from the lowest numeric price to the highest. */
+export function sortServicesByPrice(services: Service[]): Service[] {
+  return [...services].sort((a, b) => {
+    const aPrice = a.priceCents ?? Number.POSITIVE_INFINITY;
+    const bPrice = b.priceCents ?? Number.POSITIVE_INFINITY;
+    return aPrice - bPrice || a.sortOrder - b.sortOrder || a.name.localeCompare(b.name);
+  });
+}
+
 export function formatDuration(minutes: number | null): string | null {
   if (!minutes) return null;
   if (minutes < 60) return `${minutes} min`;

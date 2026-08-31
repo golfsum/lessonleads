@@ -42,8 +42,8 @@ export function calculateAnalytics(data: WorkspaceData): AnalyticsSummary {
   const funnel = [
     { label: "Widget Views", count: widgetViews, rateFromPrevious: null },
     { label: "Widget Opens", count: widgetOpens, rateFromPrevious: rate(widgetOpens, widgetViews) },
-    { label: "Conversations", count: conversations, rateFromPrevious: rate(conversations, widgetOpens) },
-    { label: "Leads", count: leads, rateFromPrevious: rate(leads, conversations) },
+    { label: "AI Conversations", count: conversations, rateFromPrevious: rate(conversations, widgetOpens) },
+    { label: "Leads Captured", count: leads, rateFromPrevious: rate(leads, conversations) },
     { label: "Booking Clicks", count: bookingClicks, rateFromPrevious: rate(bookingClicks, leads) },
   ];
 
@@ -57,6 +57,8 @@ export function calculateAnalytics(data: WorkspaceData): AnalyticsSummary {
     bookingClicks,
     swingUploads,
     videoViews,
+    conversationToLeadRate: rate(leads, conversations),
+    conversationToBookingClickRate: rate(bookingClicks, conversations),
     visitorToLeadRate: rate(leads, widgetOpens),
     leadToBookingClickRate: rate(bookingClicks, leads),
     funnel,

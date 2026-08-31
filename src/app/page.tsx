@@ -5,6 +5,7 @@ import { Logo } from "@/components/brand/logo";
 import { HomeDemo } from "@/components/marketing/home-demo";
 import { BottomCta, MarketingFooter } from "@/components/marketing/marketing-shell";
 import { MobileMenu } from "@/components/marketing/mobile-menu";
+import { plans } from "@/lib/billing/plans";
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -15,11 +16,18 @@ const structuredData = {
   description:
     "An embeddable widget for golf coaches that answers visitor questions from the coach's own content, captures qualified leads, and hands them to the coach's booking system.",
   offers: [
-    { "@type": "Offer", name: "Free", price: "0", priceCurrency: "USD" },
-    { "@type": "Offer", name: "Solo", price: "29", priceCurrency: "USD" },
-    { "@type": "Offer", name: "Pro", price: "79", priceCurrency: "USD" },
+    { "@type": "Offer", name: plans.free.name, price: String(plans.free.priceCents / 100), priceCurrency: "USD" },
+    { "@type": "Offer", name: plans.solo.name, price: String(plans.solo.priceCents / 100), priceCurrency: "USD" },
+    { "@type": "Offer", name: plans.pro.name, price: String(plans.pro.priceCents / 100), priceCurrency: "USD" },
+    { "@type": "Offer", name: plans.academy.name, price: String(plans.academy.priceCents / 100), priceCurrency: "USD" },
   ],
 };
+
+const coachPlans = [
+  { ...plans.solo, cta: "Start with Solo" },
+  { ...plans.pro, cta: "Go Pro" },
+  { ...plans.academy, cta: "Start Academy" },
+];
 
 const setupSteps = [
   { number: "1", title: "Connect your website", text: "LessonLeads scans your public pages, FAQ, and services." },
@@ -149,6 +157,25 @@ export default function HomePage() {
             <div><strong>61</strong><span>Leads captured</span></div>
             <div><strong>29</strong><span>Booking clicks</span></div>
           </div>
+        </div>
+      </section>
+
+      <section className="home-pricing page-width">
+        <div className="value-heading">
+          <p className="eyebrow">Plans for golf coaches and academies</p>
+          <h2>Turn more website visitors into students.</h2>
+          <p>Start with the conversion tools that fit your business. One additional paid lesson can cover several months of LessonLeads.</p>
+        </div>
+        <div className="pricing-grid three">
+          {coachPlans.map((plan) => (
+            <article className="pricing-card" key={plan.name}>
+              <p className="eyebrow">{plan.name}</p>
+              <div className="plan-price"><strong>{plan.priceLabel}</strong><span>{plan.priceNote}</span></div>
+              <p>{plan.description}</p>
+              <ul>{plan.features.map((feature) => <li key={feature}><Check size={16} /> {feature}</li>)}</ul>
+              <Link className="button button-secondary" href="/signup">{plan.cta}</Link>
+            </article>
+          ))}
         </div>
       </section>
 

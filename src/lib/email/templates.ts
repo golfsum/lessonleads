@@ -59,7 +59,7 @@ export function accountEmail(kind: "welcome" | "verification" | "password_reset"
     password_reset: ["Reset your password", "Use the secure link below to choose a new password."],
     subscription_confirmation: ["Your paid plan is active", "Your widget now runs on the limits and features of your new plan."],
     subscription_cancellation: ["Your subscription was canceled", "Your account will return to the Free plan according to the billing period shown in Stripe."],
-    usage_warning: ["Your widget is near this month's limit", "Upgrade to Solo for $29/month so new golfers can keep talking with your assistant."],
+    usage_warning: ["Your widget is near this month's limit", "Upgrade to Solo for $19/month so new golfers can keep talking with your assistant."],
   } as const;
   const [title, copy] = content[kind];
   return { subject: title, html: shell(title, `<p>${copy}</p>`, { label: "Open LessonLeads", url: actionUrl }), text: `${title}. ${copy} ${actionUrl}` };

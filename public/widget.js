@@ -39,7 +39,7 @@
         : Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 12);
       sessionStorage.setItem(sessionKey, sessionId);
     }
-  } catch (error) {
+  } catch {
     sessionId = Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 12);
   }
 
@@ -51,7 +51,7 @@
         body: JSON.stringify({ coachId: coachId, name: name, sessionId: sessionId, page: location.href.split("#")[0].slice(0, 500) }),
         keepalive: true,
       }).catch(function () {});
-    } catch (error) {
+    } catch {
       /* Analytics must never break the host page. */
     }
   }

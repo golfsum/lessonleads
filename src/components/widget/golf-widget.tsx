@@ -42,8 +42,10 @@ export function GolfWidget({ data, embedded = false, preview = false }: { data: 
 
   useEffect(() => {
     const loaded = loadSession(preview ? `preview-${publicId}` : publicId);
+    /* eslint-disable react-hooks/set-state-in-effect -- bootstrap client session state */
     setSession(loaded);
     setLeadCaptured(loaded.leadCaptured);
+    /* eslint-enable react-hooks/set-state-in-effect */
     conversationIdRef.current = loaded.conversationId;
     setContext(readPageContext());
     if (!preview) sendWidgetEvent({ coachId: publicId, name: "widget_open", sessionId: loaded.sessionId });

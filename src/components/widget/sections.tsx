@@ -4,19 +4,17 @@ import { useMemo, useState } from "react";
 import type { ContentItem } from "@/lib/domain/types";
 import type { WidgetController } from "./golf-widget";
 import { ClockIcon, GlobeIcon, MailIcon, PinIcon, PlayIcon } from "./icons";
-import { ServiceCard } from "./chat-section";
-import { formatDuration, formatPrice } from "@/lib/domain/format";
+import { formatDuration, formatPrice, sortServicesByPrice } from "@/lib/domain/format";
 
 export function LessonsSection({ controller }: { controller: WidgetController }) {
   const services = controller.data.services;
   if (services.length === 0) {
     return <div className="gw-section"><p className="gw-empty">No lessons published yet.</p></div>;
   }
-  const featured = services.filter((service) => service.featured);
-  const rest = services.filter((service) => !service.featured);
+  const orderedServices = sortServicesByPrice(services);
   return (
     <div className="gw-section">
-      {[...featured, ...rest].map((service) => (
+      {orderedServices.map((service) => (
         <div key={service.id} className={`gw-service-tile ${service.featured ? "featured" : ""}`}>
           {service.featured ? <span className="gw-featured-tag">Most popular</span> : null}
           <strong>{service.name}</strong>

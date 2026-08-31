@@ -12,6 +12,7 @@ import {
 import { getViewer } from "@/lib/auth/session";
 import type { Conversation } from "@/lib/domain/types";
 import { conversationLimit, visitorConversationLimitMessage } from "@/lib/billing/plans";
+import { isConversationSessionActive } from "@/lib/billing/usage";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { widgetOriginAllowed } from "@/lib/security/origins";
 import { requestFingerprint } from "@/lib/security/request";
@@ -37,11 +38,17 @@ export async function GET(request: Request) {
   const coachId = url.searchParams.get("coachId") ?? "";
   const conversationId = url.searchParams.get("conversationId") ?? "";
   const visitorId = url.searchParams.get("visitorId") ?? "";
+  const sessionId = url.searchParams.get("sessionId") ?? "";
   if (!coachId || !conversationId || visitorId.length < 8) return Response.json({ error: "Invalid request." }, { status: 400 });
   const context = await getChatContext(coachId);
   if (!context) return Response.json({ error: "Widget not found." }, { status: 404 });
   const conversation = await getConversation(conversationId);
-  if (!conversation || conversation.visitorId !== visitorId || conversation.widgetId !== context.publicWidget.widget.id) {
+  if (
+    !conversation ||
+    conversation.visitorId !== visitorId ||
+    conversation.widgetId !== context.publicWidget.widget.id ||
+    (sessionId.length >= 8 && !isConversationSessionActive(conversation, sessionId))
+  ) {
     return Response.json({ messages: [] });
   }
   return Response.json({
@@ -83,7 +90,17 @@ export async function POST(request: Request) {
   }
 
   let conversation: Conversation | null = null;
-  if (input.conversationId) conversation = await getConversation(input.conversationId);
+  if (input.conversationId) {
+    const candidate = await getConversation(input.conversationId);
+    if (
+      candidate &&
+      candidate.visitorId === input.visitorId &&
+      candidate.widgetId === context.publicWidget.widget.id &&
+      isConversationSessionActive(candidate, input.sessionId)
+    ) {
+      conversation = candidate;
+    }
+  }
   const isNewConversation = !conversation;
   const preview = Boolean(input.preview) && Boolean(await getViewer());
 
@@ -91,7 +108,7 @@ export async function POST(request: Request) {
     const limit = conversationLimit(context.publicWidget.plan);
     const used = await countConversationsThisMonth(context.data.organization.id);
     if (used >= limit) {
-      return Response.json({ error: visitorConversationLimitMessage }, { status: 429 });
+      return Response.json({ error: visitorConversationLimitMessage, usage: { used, limit, remaining: 0 } }, { status: 429 });
     }
   }
 

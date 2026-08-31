@@ -1,4 +1,4 @@
-export type Plan = "free" | "solo" | "pro";
+export type Plan = "free" | "solo" | "pro" | "academy";
 
 export type LeadStatus = "new" | "contacted" | "qualified" | "booking_sent" | "booked" | "won" | "lost";
 
@@ -472,6 +472,8 @@ export interface AnalyticsSummary {
   videoViews: number;
   visitorToLeadRate: number;
   leadToBookingClickRate: number;
+  conversationToLeadRate: number;
+  conversationToBookingClickRate: number;
   funnel: FunnelStage[];
   topServices: Array<{ label: string; count: number; percentage: number }>;
   topTopics: Array<{ label: string; count: number; percentage: number }>;

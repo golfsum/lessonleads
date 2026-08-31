@@ -11,11 +11,11 @@ export default async function AnalyticsPage() {
   const stats = [
     { label: "Widget views", value: analytics.widgetViews },
     { label: "Widget opens", value: analytics.widgetOpens },
-    { label: "Conversations", value: analytics.conversations },
+    { label: "AI Conversations", value: analytics.conversations },
     { label: "Messages", value: analytics.messages },
-    { label: "Leads", value: analytics.leads },
+    { label: "Leads Captured", value: analytics.leads },
     { label: "High intent", value: analytics.highIntentLeads },
-    { label: "Booking clicks", value: analytics.bookingClicks },
+    { label: "Booking Clicks", value: analytics.bookingClicks },
     { label: "Swing uploads", value: analytics.swingUploads },
   ];
   return (
@@ -29,9 +29,9 @@ export default async function AnalyticsPage() {
       {hasPlanFeature(data.subscription.plan, "analytics") ? null : (
         <PlanGate
           currentPlan={data.subscription.plan}
-          required="pro"
+          required="solo"
           title="See the full conversion funnel"
-          body="Overview already shows leads and booking clicks. Pro adds the full funnel, topics, video views, and month-over-month detail."
+          body="Solo adds the basic conversion funnel. Pro adds richer knowledge, video, and conversion detail as your coaching business grows."
         />
       )}
       {hasPlanFeature(data.subscription.plan, "analytics") ? (
@@ -55,8 +55,9 @@ export default async function AnalyticsPage() {
             );
           })}
           <dl className="rate-summary">
-            <div><dt>Visitor &rarr; lead</dt><dd>{analytics.visitorToLeadRate}%</dd></div>
-            <div><dt>Lead &rarr; booking click</dt><dd>{analytics.leadToBookingClickRate}%</dd></div>
+            <div><dt>Conversation &rarr; Lead</dt><dd>{analytics.conversationToLeadRate}%</dd></div>
+            <div><dt>Lead &rarr; Booking Click</dt><dd>{analytics.leadToBookingClickRate}%</dd></div>
+            <div><dt>Conversation &rarr; Booking Click</dt><dd>{analytics.conversationToBookingClickRate}%</dd></div>
           </dl>
         </article>
 
@@ -82,7 +83,7 @@ export default async function AnalyticsPage() {
         <h2>Reading these numbers</h2>
         <p>
           Widget views count visitors who saw the launcher. Opens are visitors who clicked it. A conversation starts with the first message.
-          Booking clicks mean a golfer opened your booking link — mark leads as Booked in the lead inbox when they confirm, so your win rate stays honest.
+          Booking clicks mean a golfer opened your booking link. They are not confirmed bookings; confirmed booking metrics will appear only when a supported provider reports a completed booking.
         </p>
       </section>
         </>

@@ -252,6 +252,7 @@ export async function countDemoLeadsThisMonth(organizationId?: string): Promise<
 }
 
 export async function countDemoConversationsThisMonth(_organizationId?: string): Promise<number> {
+  void _organizationId;
   const data = await readDemoWorkspace();
   const nowDate = new Date();
   return data.events.filter((event) => {

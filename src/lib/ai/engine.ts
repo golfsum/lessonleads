@@ -17,7 +17,7 @@ import { retrieveChunks, scoreText, tokenize } from "@/lib/knowledge/retrieval";
 import { accumulateIntent } from "./intent";
 import { describeFocusArea, extractProfileUpdates } from "./profile";
 import { generateGroundedAnswer, llmAvailable } from "./llm";
-import { formatPrice } from "@/lib/domain/format";
+import { formatPrice, sortServicesByPrice } from "@/lib/domain/format";
 
 export interface EngineInput {
   message: string;
@@ -64,6 +64,10 @@ function classifyMessage(message: string): MessageKind {
     return "swing_upload";
   }
   if (
+    /\bplans?\b[\s\S]{0,100}\b(?:includ\w*|feature\w*|come\s+with|cost\w*|price\w*)\b/.test(text) ||
+    /\b(?:includ\w*|feature\w*|come\s+with|cost\w*|price\w*)\b[\s\S]{0,100}\bplans?\b/.test(text) ||
+    /\bhow\s+(?:does|do|will)\b[\s\S]{0,100}\bwork\b/.test(text) ||
+    /\b(?:will|does|can|is)\b[\s\S]{0,80}\bwork\s+with\b|\bcompatible\s+with\b|\bintegrat\w*\s+with\b/.test(text) ||
     /\bhow much|price[sd]?|pricing|cost[s]?|rates?\b/.test(text) ||
     /\b(where|location|address|directions)\b.*\b(teach|located|based|you|lesson)|where (are you|do you)/.test(text) ||
     /\b(cancel+ation|refund|reschedul|policy|policies)\b/.test(text) ||
@@ -384,6 +388,51 @@ function answerFactual(
   let recommendedServiceId: string | undefined;
   const activeFaqs = input.faqs.filter((faq) => faq.enabled);
   const activeServices = input.services.filter((service) => service.active);
+
+  const planQuestion =
+    /\bplans?\b[\s\S]{0,100}\b(?:includ\w*|feature\w*|come\s+with|cost\w*|price\w*)\b/.test(text) ||
+    /\b(?:includ\w*|feature\w*|come\s+with|cost\w*|price\w*)\b[\s\S]{0,100}\bplans?\b/.test(text);
+  const howItWorksQuestion = /\bhow\s+(?:does|do|will)\b[\s\S]{0,100}\bwork\b/.test(text);
+
+  if (planQuestion && activeServices.length > 0) {
+    const orderedServices = sortServicesByPrice(activeServices);
+    const summary = orderedServices
+      .slice(0, 6)
+      .map((service) => `${service.name} — ${formatPrice(service)}\n${service.description}`)
+      .join("\n\n");
+    const pricingChunk = input.chunks.find((chunk) => /\bplans?\b|\bpricing\b/i.test(`${chunk.title} ${chunk.content}`));
+    if (pricingChunk) sources.push({ sourceId: pricingChunk.sourceId, title: pricingChunk.title, type: pricingChunk.sourceType });
+    return {
+      content: isProductAssistant(input.coach)
+        ? `Here's what's included on each LessonLeads plan:\n\n${summary}`
+        : `Here's what ${coachFirst}'s options include:\n\n${summary}`,
+      cards,
+      sources,
+      suggestedReplies: isProductAssistant(input.coach)
+        ? ["How do I get started?", "Will it work with Calendly or CoachNow?"]
+        : ["Which lesson is right for me?", "Do you offer online coaching?"],
+      recommendedServiceId,
+    };
+  }
+
+  if (howItWorksQuestion && isProductAssistant(input.coach)) {
+    const howChunks = input.chunks.filter(
+      (chunk) => /\bhow\b[\s\S]*\bwork/i.test(chunk.title) || /\bsetup takes\b/i.test(chunk.content),
+    );
+    const retrieved = retrieveChunks(input.message, howChunks.length > 0 ? howChunks : input.chunks, 2);
+    if (retrieved.length > 0) {
+      for (const entry of retrieved) {
+        sources.push({ sourceId: entry.chunk.sourceId, title: entry.chunk.title, type: entry.chunk.sourceType });
+      }
+      return {
+        content: retrieved[0].chunk.content.slice(0, 500),
+        cards,
+        sources,
+        suggestedReplies: ["What's included on each plan?", "Will it work with Calendly or CoachNow?"],
+        recommendedServiceId,
+      };
+    }
+  }
 
   // FAQs and manual knowledge are the most trusted answers for business questions.
   const faq = matchFaq(input.message, activeFaqs);

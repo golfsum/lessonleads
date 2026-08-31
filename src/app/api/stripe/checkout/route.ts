@@ -5,6 +5,7 @@ import {
   isMissingStripeCustomer,
   stripeErrorMessage,
 } from "@/lib/billing/stripe";
+import { isPaidPlanId, type PaidPlanId } from "@/lib/billing/plans";
 import { isDemoMode } from "@/lib/demo/store";
 import { hasTrustedOrigin } from "@/lib/security/request";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -15,7 +16,8 @@ export async function POST(request: Request) {
   if (isDemoMode()) return Response.json({ error: "Billing is disabled in the local demo workspace." }, { status: 409 });
   try {
     const body = (await request.json().catch(() => ({}))) as { plan?: string };
-    const plan = body.plan === "pro" ? "pro" : "solo";
+    const requestedPlan = typeof body.plan === "string" ? body.plan : "";
+    const plan: PaidPlanId = isPaidPlanId(requestedPlan) ? requestedPlan : "solo";
     const stripe = getStripe();
     const price = getPriceId(plan);
     const supabase = createSupabaseAdminClient();

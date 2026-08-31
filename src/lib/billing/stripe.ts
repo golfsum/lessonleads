@@ -1,6 +1,7 @@
 import "server-only";
 
 import Stripe from "stripe";
+import type { PaidPlanId, PlanId } from "./plans";
 
 export function getStripe() {
   const key = process.env.STRIPE_SECRET_KEY;
@@ -8,16 +9,23 @@ export function getStripe() {
   return new Stripe(key);
 }
 
-export function getPriceId(plan: "solo" | "pro") {
-  const priceId = plan === "pro" ? process.env.STRIPE_PRO_PRICE_ID : process.env.STRIPE_SOLO_PRICE_ID;
+function configuredPriceIds(plan: PaidPlanId) {
+  const canonical = process.env[`STRIPE_PRICE_${plan.toUpperCase()}`]?.trim();
+  const legacy = process.env[`STRIPE_${plan.toUpperCase()}_PRICE_ID`]?.trim();
+  return [canonical, legacy].filter((value, index, values): value is string => Boolean(value) && values.indexOf(value) === index);
+}
+
+export function getPriceId(plan: PaidPlanId) {
+  const priceId = configuredPriceIds(plan)[0];
   if (!priceId) throw new Error("STRIPE_PRICE_NOT_CONFIGURED");
   return priceId;
 }
 
-export function planFromStripePriceId(priceId: string | undefined): "solo" | "pro" | "free" {
+export function planFromStripePriceId(priceId: string | undefined): PlanId {
   if (!priceId) return "free";
-  if (priceId === process.env.STRIPE_PRO_PRICE_ID) return "pro";
-  if (priceId === process.env.STRIPE_SOLO_PRICE_ID) return "solo";
+  for (const plan of ["academy", "pro", "solo"] as const) {
+    if (configuredPriceIds(plan).includes(priceId)) return plan;
+  }
   return "free";
 }
 

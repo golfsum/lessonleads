@@ -335,7 +335,7 @@ export function WidgetBuilder({ publicWidget }: { publicWidget: PublicWidget }) 
         <div className={`preview-stage ${device}`}>
           <GolfWidget data={draft} key={`${previewKey}-${device}`} preview />
         </div>
-        <small className="install-note">The preview is fully interactive. Test chats do not count toward your monthly visitor conversations.</small>
+        <small className="install-note">The preview is fully interactive. Test chats do not count toward your monthly AI conversations.</small>
       </aside>
     </div>
   );

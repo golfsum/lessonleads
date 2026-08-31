@@ -32,6 +32,7 @@ export function ChatSection({ controller }: { controller: WidgetController }) {
   const [captureDone, setCaptureDone] = useState<Record<string, boolean>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
   const conversationStartedRef = useRef(false);
+  const conversationIdRef = useRef(session.conversationId);
 
   // Restore an existing conversation, otherwise show the welcome message.
   useEffect(() => {
@@ -40,7 +41,7 @@ export function ChatSection({ controller }: { controller: WidgetController }) {
       if (session.conversationId) {
         try {
           const response = await fetch(
-            `/api/public/chat?coachId=${encodeURIComponent(data.widget.publicId)}&conversationId=${encodeURIComponent(session.conversationId)}&visitorId=${encodeURIComponent(session.visitorId)}`,
+            `/api/public/chat?coachId=${encodeURIComponent(data.widget.publicId)}&conversationId=${encodeURIComponent(session.conversationId)}&visitorId=${encodeURIComponent(session.visitorId)}&sessionId=${encodeURIComponent(session.sessionId)}`,
           );
           if (response.ok) {
             const payload = (await response.json()) as { messages?: UiMessage[] };
@@ -86,7 +87,7 @@ export function ChatSection({ controller }: { controller: WidgetController }) {
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
             coachId: data.widget.publicId,
-            conversationId: session.conversationId ?? undefined,
+            conversationId: conversationIdRef.current ?? undefined,
             visitorId: session.visitorId,
             sessionId: session.sessionId,
             message: trimmed,
@@ -110,7 +111,7 @@ export function ChatSection({ controller }: { controller: WidgetController }) {
           return;
         }
         if (payload.conversationId) {
-          session.conversationId = payload.conversationId;
+          conversationIdRef.current = payload.conversationId;
           controller.onConversationId(payload.conversationId);
           conversationStartedRef.current = true;
         }
@@ -288,7 +289,7 @@ function MessageCardView({
     return (
       <div className="gw-card gw-captured">
         <CheckIcon size={15} />
-        <span>You're all set. {coachFirst} can follow up with you.</span>
+        <span>You&apos;re all set. {coachFirst} can follow up with you.</span>
       </div>
     );
   }

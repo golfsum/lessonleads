@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, CalendarCheck, Clapperboard, Flame, MessagesSquare, MousePointerClick, UsersRound } from "lucide-react";
 import { UsageBanner } from "@/components/dashboard/usage-banner";
+import { UsageIndicator } from "@/components/dashboard/usage-indicator";
 import { calculateAnalytics } from "@/lib/analytics";
 import { usageState } from "@/lib/billing/usage";
 import { getWorkspaceData } from "@/lib/data/workspace";
@@ -15,15 +16,16 @@ export default async function DashboardOverviewPage() {
   const usage = usageState(data);
   const stats = [
     { label: "Widget opens", value: analytics.widgetOpens, icon: MousePointerClick },
-    { label: "Conversations", value: analytics.conversations, icon: MessagesSquare },
-    { label: "Leads captured", value: analytics.leads, icon: UsersRound },
+    { label: "AI Conversations", value: analytics.conversations, icon: MessagesSquare },
+    { label: "Leads Captured", value: analytics.leads, icon: UsersRound },
     { label: "High-intent leads", value: analytics.highIntentLeads, icon: Flame },
-    { label: "Booking clicks", value: analytics.bookingClicks, icon: CalendarCheck },
+    { label: "Booking Clicks", value: analytics.bookingClicks, icon: CalendarCheck },
     { label: "Swing uploads", value: analytics.swingUploads, icon: Clapperboard },
   ];
   const widgetLive = data.widget.status === "active";
   return (
     <div className="dashboard-page">
+      <UsageIndicator used={usage.conversations} limit={usage.conversationLimit} resetAt={usage.resetAt} />
       <UsageBanner currentPlan={data.subscription.plan} prompt={usage.prompt} />
       <section className="value-banner">
         <div>
