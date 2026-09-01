@@ -37,7 +37,6 @@ export function usageThisMonth(data: WorkspaceData, now = new Date()) {
     if (event.name !== "conversation_started" || new Date(event.occurredAt).getTime() < start) continue;
     conversationKeys.add(event.conversationId ?? `session:${event.sessionId}`);
   }
-  const conversations = conversationKeys.size;
   const leads = data.leads.filter((lead) => new Date(lead.createdAt).getTime() >= start).length;
   return { conversations: conversationKeys.size, leads };
 }

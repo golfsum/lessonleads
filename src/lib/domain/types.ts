@@ -744,8 +744,6 @@ export interface AnalyticsSummary {
   conversationToBookingClickRate: number;
   visitorToLeadRate: number;
   leadToBookingClickRate: number;
-  conversationToLeadRate: number;
-  conversationToBookingClickRate: number;
   funnel: FunnelStage[];
   leadFunnels: Array<{ label: string; count: number }>;
   topServices: Array<{ label: string; count: number; percentage: number }>;
