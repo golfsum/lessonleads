@@ -173,6 +173,69 @@ export function GlobeIcon({ size = 14 }: IconProps) {
   );
 }
 
+export function CalendarIcon({ size = 18 }: IconProps) {
+  return (
+    <svg {...svgProps(size)}>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 10h18" />
+      <path d="M8 3v4" />
+      <path d="M16 3v4" />
+    </svg>
+  );
+}
+
+export function MapIcon({ size = 18 }: IconProps) {
+  return (
+    <svg {...svgProps(size)}>
+      <path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z" />
+      <path d="M9 3v15" />
+      <path d="M15 6v15" />
+    </svg>
+  );
+}
+
+export function ShopIcon({ size = 18 }: IconProps) {
+  return (
+    <svg {...svgProps(size)}>
+      <path d="M4 9h16v11H4z" />
+      <path d="M3 9 5 4h14l2 5" />
+      <path d="M10 13h4" />
+    </svg>
+  );
+}
+
+export function UtensilsIcon({ size = 18 }: IconProps) {
+  return (
+    <svg {...svgProps(size)}>
+      <path d="M4 3v8" />
+      <path d="M4 11c0 4 3 6 3 10" />
+      <path d="M7 3v8" />
+      <path d="M16 3v18" />
+      <path d="M16 8h4a2 2 0 0 0 0-4h-4" />
+    </svg>
+  );
+}
+
+export function UsersIcon({ size = 18 }: IconProps) {
+  return (
+    <svg {...svgProps(size)}>
+      <circle cx="9" cy="8" r="3" />
+      <path d="M3 20c0-3 2.5-5 6-5s6 2 6 5" />
+      <circle cx="17" cy="9" r="2.5" />
+      <path d="M17 15c2.8.3 4 2 4 5" />
+    </svg>
+  );
+}
+
+export function TicketIcon({ size = 18 }: IconProps) {
+  return (
+    <svg {...svgProps(size)}>
+      <path d="M3 9a2 2 0 0 0 2-2V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1a2 2 0 0 0 2 2v6a2 2 0 0 0-2 2v1a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-1a2 2 0 0 0-2-2z" />
+      <path d="M12 8v8" />
+    </svg>
+  );
+}
+
 export function menuIcon(icon: WidgetMenuIcon, size = 18) {
   switch (icon) {
     case "chat":
@@ -195,5 +258,17 @@ export function menuIcon(icon: WidgetMenuIcon, size = 18) {
       return <MailIcon size={size} />;
     case "link":
       return <LinkIcon size={size} />;
+    case "calendar":
+      return <CalendarIcon size={size} />;
+    case "map":
+      return <MapIcon size={size} />;
+    case "shop":
+      return <ShopIcon size={size} />;
+    case "utensils":
+      return <UtensilsIcon size={size} />;
+    case "users":
+      return <UsersIcon size={size} />;
+    case "ticket":
+      return <TicketIcon size={size} />;
   }
 }

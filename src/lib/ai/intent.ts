@@ -25,6 +25,9 @@ const SIGNALS: IntentSignal[] = [
   { pattern: /\b(this|next) (week|weekend|month|saturday|sunday)\b/i, points: 15 },
   { pattern: /\bjunior|my (son|daughter|kid|child)\b/i, points: 10 },
   { pattern: /\bwhere (are you|do you teach|is the)\b|\blocation\b|\bdirections\b/i, points: 15 },
+  { pattern: /\b(tee times?|tee sheet|foursome|book(ing)? golf)\b/i, points: 35 },
+  { pattern: /\b(membership|join the club|member dues)\b/i, points: 30 },
+  { pattern: /\b(tournament|outing|scramble|corporate golf|host (a |an )?(event|outing))\b/i, points: 40 },
 ];
 
 /** Points earned by a single visitor message. */

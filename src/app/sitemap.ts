@@ -1,8 +1,9 @@
 import type { MetadataRoute } from "next";
 
 const routes = [
-  "", "/how-it-works", "/features", "/pricing", "/resources", "/demo",
-  "/golf-coaches", "/golf-lesson-lead-generation", "/golf-lesson-widget",
+  "", "/how-it-works", "/features", "/pricing", "/resources", "/demo", "/demo/course",
+  "/golf-coaches", "/for/golf-coaches", "/for/golf-courses",
+  "/golf-lesson-lead-generation", "/golf-lesson-widget",
   "/golf-coach-website-widget", "/golf-instructor-lead-generation",
   "/golf-lesson-booking-widget", "/coachnow-lead-generation",
   "/works-with/coachnow", "/works-with/calendly", "/works-with/acuity", "/works-with/square",

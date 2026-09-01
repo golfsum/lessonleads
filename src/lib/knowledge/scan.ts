@@ -10,12 +10,17 @@ const USER_AGENT = "LessonLeadsBot/1.0 (+https://lessonleads.com/bot)";
 /** Paths that usually hold coaching content, in priority order. */
 const PRIORITY_PATTERNS = [
   /faq|help|knowledge|questions/i,
-  /about|bio|meet/i,
+  /tee-?times?|book|reserv/i,
+  /rates?|green-?fees?|pric|twilight/i,
+  /membership|join/i,
+  /about|bio|meet|course|scorecard|layout/i,
   /lesson|coaching|instruction|teach|program|academy|school/i,
-  /pric|rate|package|fee/i,
+  /event|outing|tournament|wedding/i,
+  /restaurant|grill|dining|menu/i,
+  /practice|range|simulator/i,
+  /pro-?shop|contact|location|hours|directions/i,
   /service|offer/i,
   /blog|article|tip|drill|resource|guide/i,
-  /contact|location|book/i,
 ];
 
 const SKIP_PATTERNS = [

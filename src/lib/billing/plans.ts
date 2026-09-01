@@ -34,7 +34,9 @@ function definePlan<const Definition extends PlanDefinition<string>>(input: Defi
 /**
  * Coach-facing pricing lives here so marketing, checkout, usage, and the
  * public LessonLeads widget all read the same plan limits and feature set.
- * The legacy aliases keep existing UI and persisted data compatible.
+ * `priceCents` and `monthlyConversations` remain as compatibility aliases for
+ * existing persistence and UI code; `monthlyPrice` and `conversationLimit`
+ * are the canonical fields for new code.
  */
 export const plans = {
   free: definePlan({
@@ -118,7 +120,6 @@ export const plans = {
       "Swing uploads",
       "Follow-up tools",
       "Conversion analytics",
-      "Advanced knowledge sources",
       "50 AI conversations / month",
     ],
   }),
@@ -140,7 +141,7 @@ export const plans = {
     leadRouting: true,
     teamAccess: true,
     academyAnalytics: true,
-    description: "For academies and multi-coach businesses.",
+    description: "For golf academies and businesses with multiple coaches.",
     features: [
       "Everything in Pro",
       "Multiple coaches",
@@ -182,7 +183,7 @@ export function leadLimit(plan: string): number | null {
   return isPlanId(plan) ? plans[plan].monthlyLeads : plans.free.monthlyLeads;
 }
 
-/** Coach-facing copy when a plan reaches or approaches its cap. */
+/** Coach-facing copy when a plan reaches its cap. Never shown to visitors. */
 export function upgradePrompt(input: { plan: string; leadsThisMonth: number; conversationsThisMonth: number }): string | null {
   if (input.plan === "solo" && input.conversationsThisMonth >= plans.solo.conversationLimit) {
     return "Your widget is at this month's conversation limit. Move to Pro for up to 50 AI conversations.";

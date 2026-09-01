@@ -138,7 +138,7 @@ export function buildSiteWorkspace(): WorkspaceData {
       [
         `Free is ${plans.free.priceLabel}. ${plans.free.description} It includes up to ${plans.free.monthlyConversations} AI conversations per month, ${plans.free.monthlyLeads} leads, and LessonLeads branding on the widget.`,
         `Solo is ${plans.solo.priceLabel} ${plans.solo.priceNote}. ${plans.solo.description} It includes ${plans.solo.monthlyConversations} AI conversations per month and unlimited leads, plus custom widget branding, website knowledge, booking handoff, conversation history, and analytics.`,
-        `Pro is ${plans.pro.priceLabel} ${plans.pro.priceNote}. ${plans.pro.description} It includes ${plans.pro.monthlyConversations} AI conversations per month, everything in Solo, YouTube knowledge, video recommendations, swing uploads, follow-up tools, conversion analytics, and advanced knowledge sources.`,
+        `Pro is ${plans.pro.priceLabel} ${plans.pro.priceNote}. ${plans.pro.description} It includes ${plans.pro.monthlyConversations} AI conversations per month, everything in Solo, YouTube knowledge, video recommendations, swing uploads, follow-up tools, and conversion analytics.`,
         `Academy is ${plans.academy.priceLabel} ${plans.academy.priceNote}. ${plans.academy.description} It includes ${plans.academy.monthlyConversations} AI conversations per month, everything in Pro, multiple coaches, multiple services, lead routing, team access, and academy-level analytics.`,
         "An AI conversation is one visitor session, not every message. Opening the widget, browsing plans, and chatting in the dashboard preview do not count.",
         `Start at lessonleads.com/signup. No card is required for Free.`,
@@ -270,6 +270,8 @@ export function buildSiteWorkspace(): WorkspaceData {
       id: SITE_ORG_ID,
       name: "LessonLeads",
       slug: SITE_WIDGET_PUBLIC_ID,
+      type: "golf_coach",
+      conversionGoals: ["lesson_lead", "lesson_booking"],
       createdAt: now,
     },
     coach: {
@@ -297,6 +299,10 @@ export function buildSiteWorkspace(): WorkspaceData {
       profilePhotoUrl: logoUrl,
       notificationPrefs: { ...DEFAULT_NOTIFICATION_PREFS, newLead: true, highIntentLead: true },
     },
+    locations: [],
+    staff: [],
+    announcements: [],
+    bookingIntegrations: [],
     services,
     widget: {
       id: SITE_WIDGET_ID,
@@ -329,6 +335,10 @@ export function buildSiteWorkspace(): WorkspaceData {
           "What's included on each plan?",
           "Will it work with Calendly or CoachNow?",
           "How do I put this on my site?",
+        ],
+        quickActions: [
+          { id: "qa_ask", key: "ask", label: "Ask a Question", enabled: true, sortOrder: 0 },
+          { id: "qa_lesson", key: "lessons", label: "See plans", enabled: true, sortOrder: 1 },
         ],
       },
       menu: [

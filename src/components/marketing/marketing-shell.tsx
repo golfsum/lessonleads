@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Route } from "next";
 import { ArrowRight } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { MobileMenu } from "@/components/marketing/mobile-menu";
@@ -28,14 +29,17 @@ export function MarketingFooter() {
       <div className="page-width footer-grid">
         <div>
           <Logo />
-          <p>Turn your golf website traffic into booked lessons.</p>
+          <p>Turn golf website traffic into lessons, tee times, and qualified inquiries.</p>
         </div>
         <div>
           <strong>Product</strong>
           <Link href="/how-it-works">How it works</Link>
           <Link href="/features">Features</Link>
           <Link href="/pricing">Pricing</Link>
-          <Link href="/demo">Live demo</Link>
+          <Link href="/demo">Coach demo</Link>
+          <Link href={"/demo/course" as Route}>Course demo</Link>
+          <Link href={"/for/golf-coaches" as Route}>For golf coaches</Link>
+          <Link href={"/for/golf-courses" as Route}>For golf courses</Link>
         </div>
         <div>
           <strong>Resources</strong>
@@ -52,7 +56,7 @@ export function MarketingFooter() {
       </div>
       <div className="page-width footer-bottom">
         <span>© {new Date().getFullYear()} LessonLeads</span>
-        <span>Built for golf instruction businesses.</span>
+        <span>Built for golf businesses.</span>
       </div>
     </footer>
   );

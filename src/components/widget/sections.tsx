@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { ContentItem } from "@/lib/domain/types";
+import type { ContentItem, WidgetSectionKey } from "@/lib/domain/types";
 import type { WidgetController } from "./golf-widget";
 import { ClockIcon, GlobeIcon, MailIcon, PinIcon, PlayIcon } from "./icons";
 import { formatDuration, formatPrice, sortServicesByPrice } from "@/lib/domain/format";
@@ -223,6 +223,92 @@ export function ContactSection({ controller }: { controller: WidgetController })
         <MailIcon /> Prefer chat? Ask a question in the {controller.data.widget.menu.find((item) => item.key === "ask")?.title ?? "Ask"} tab and
         leave your email so {first} can follow up.
       </p>
+    </div>
+  );
+}
+
+export function StaffSection({ controller }: { controller: WidgetController }) {
+  const staff = controller.data.staff;
+  if (staff.length === 0) {
+    return <div className="gw-section"><p className="gw-empty">Golf staff will appear here once they&apos;re added.</p></div>;
+  }
+  return (
+    <div className="gw-section">
+      {staff.map((member) => (
+        <article className="gw-service-tile" key={member.id}>
+          <strong>{member.name}</strong>
+          <p className="gw-coach-title">{member.title}</p>
+          {member.bio ? <p>{member.bio}</p> : null}
+          {member.specialties.length > 0 ? <small>{member.specialties.join(" · ")}</small> : null}
+          {member.bookingUrl ? (
+            <button type="button" className="gw-button" onClick={() => controller.onExternalUrl(member.bookingUrl!, "booking_clicked")}>
+              Book with {member.name.split(" ")[0]}
+            </button>
+          ) : null}
+        </article>
+      ))}
+    </div>
+  );
+}
+
+export function TeeTimesSection({ controller }: { controller: WidgetController }) {
+  const config = controller.data.teeTime;
+  const bookingUrl = config?.bookingUrl || controller.data.coach.bookingUrl;
+  return (
+    <div className="gw-section">
+      <h2>Tee times</h2>
+      {config?.demoInventory ? <p className="gw-demo-tag">Demo availability</p> : null}
+      <p>
+        {config?.supportsLiveSearch
+          ? "Ask in chat for a date, time window, and number of players. I'll check live availability and show bookable times."
+          : "Live availability isn't connected yet. I can still send you to the course tee sheet."}
+      </p>
+      {bookingUrl ? (
+        <button type="button" className="gw-button" onClick={() => controller.onExternalUrl(bookingUrl, "tee_time_booking_clicked")}>
+          View Available Tee Times
+        </button>
+      ) : (
+        <button type="button" className="gw-button" onClick={() => controller.openSection("ask")}>
+          Ask for a tee time
+        </button>
+      )}
+    </div>
+  );
+}
+
+const COURSE_COPY: Partial<Record<WidgetSectionKey, { title: string; body: string }>> = {
+  course: { title: "About the course", body: "Ask about the layout, walking, carts, dress code, or what to expect when you play." },
+  rates: { title: "Rates", body: "Ask about green fees, twilight, carts, and junior rates. I only quote prices from approved course information." },
+  membership: { title: "Membership", body: "Ask about membership options. If current prices aren't in the knowledge base, I won't invent them — I'll connect you with the club." },
+  events: { title: "Outings and events", body: "Planning a tournament, outing, or wedding? Tell me the date and group size and I'll collect the details for the events team." },
+  practice: { title: "Practice", body: "Ask about the range, short-game area, simulators, and hours." },
+  dining: { title: "Dining", body: "Ask about the restaurant, grill, or event dining. Hours can change, so I'll stick to approved information." },
+  pro_shop: { title: "Pro shop", body: "Ask about rentals, merchandise, and services in the shop." },
+  tournaments: { title: "Tournaments", body: "Ask about hosting a tournament or joining club events." },
+  weddings: { title: "Weddings", body: "Ask about hosting a wedding or reception at the club." },
+  simulator: { title: "Simulator", body: "Ask about indoor simulator availability and booking." },
+  directions: { title: "Directions", body: controllerLocationHint() },
+};
+
+function controllerLocationHint() {
+  return "Ask for the address, parking, or the best way to get here.";
+}
+
+export function CourseInfoSection({ controller, section }: { controller: WidgetController; section: WidgetSectionKey }) {
+  const copy = COURSE_COPY[section] ?? { title: controller.data.widget.menu.find((item) => item.key === section)?.title ?? "Information", body: "Ask a question and I'll answer from the course's approved content." };
+  const location = controller.data.locations[0];
+  return (
+    <div className="gw-section">
+      <h2>{copy.title}</h2>
+      <p>{copy.body}</p>
+      {section === "directions" && (location?.address || controller.data.coach.location) ? (
+        <p className="gw-coach-location">
+          <PinIcon /> {location?.address || controller.data.coach.location}
+        </p>
+      ) : null}
+      <button type="button" className="gw-button" onClick={() => controller.openSection("ask")}>
+        Ask a question
+      </button>
     </div>
   );
 }

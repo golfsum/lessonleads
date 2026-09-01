@@ -37,13 +37,17 @@ import type {
 } from "@/lib/demo/store";
 import { getViewer } from "@/lib/auth/session";
 import { chunkText } from "@/lib/knowledge/chunk";
+import { categorizeKnowledgePage } from "@/lib/knowledge/categorize";
 import type { ScannedPage } from "@/lib/knowledge/scan";
 import { slugify } from "@/lib/domain/format";
-import { firstNameFrom } from "@/lib/domain/defaults";
+import { firstNameFrom, defaultMenu, defaultQuickActions, defaultSuggestedQuestions, defaultTheme, DEFAULT_CONVERSION_GOALS } from "@/lib/domain/defaults";
+import { isCourseLike } from "@/lib/domain/organization";
 import { intentLevelForScore, type ChatMessage, type LeadActivity, type WorkspaceData } from "@/lib/domain/types";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
+  mapAnnouncement,
+  mapBookingIntegration,
   mapChunk,
   mapCoach,
   mapContent,
@@ -51,9 +55,11 @@ import {
   mapEvent,
   mapFaq,
   mapLead,
+  mapLocation,
   mapOrganization,
   mapService,
   mapSource,
+  mapStaff,
   mapSubscription,
   mapUpload,
   mapWebsite,
@@ -98,6 +104,10 @@ async function loadWorkspace(orgId: string, client: ReturnType<typeof admin>): P
     uploadsRes,
     eventsRes,
     subRes,
+    locationsRes,
+    staffRes,
+    announcementsRes,
+    integrationsRes,
   ] = await Promise.all([
     client.from("organizations").select("*").eq("id", orgId).single(),
     client.from("coach_profiles").select("*").eq("organization_id", orgId).limit(1).maybeSingle(),
@@ -113,6 +123,10 @@ async function loadWorkspace(orgId: string, client: ReturnType<typeof admin>): P
     client.from("swing_uploads").select("*").eq("organization_id", orgId).order("created_at", { ascending: false }),
     client.from("widget_events").select("*").eq("organization_id", orgId).order("occurred_at", { ascending: true }),
     client.from("subscriptions").select("*").eq("organization_id", orgId).maybeSingle(),
+    client.from("locations").select("*").eq("organization_id", orgId).order("sort_order"),
+    client.from("staff_members").select("*").eq("organization_id", orgId).order("sort_order"),
+    client.from("course_announcements").select("*").eq("organization_id", orgId).order("priority", { ascending: false }),
+    client.from("booking_integrations").select("*").eq("organization_id", orgId),
   ]);
 
   throwIf(orgRes.error, "organization");
@@ -124,6 +138,10 @@ async function loadWorkspace(orgId: string, client: ReturnType<typeof admin>): P
   return {
     organization: mapOrganization(orgRes.data),
     coach: mapCoach(coachRes.data),
+    locations: (locationsRes.data ?? []).map(mapLocation),
+    staff: (staffRes.data ?? []).map(mapStaff),
+    announcements: (announcementsRes.data ?? []).map(mapAnnouncement),
+    bookingIntegrations: (integrationsRes.data ?? []).map(mapBookingIntegration),
     services: (servicesRes.data ?? []).map(mapService),
     widget: mapWidget(widgetRes.data, first),
     leads: (leadsRes.data ?? []).map(mapLead),
@@ -160,7 +178,9 @@ export const getSupabaseWorkspaceData: Mirror<typeof readDemoWorkspace> = async 
 
 export const saveSupabaseOnboarding: Mirror<typeof saveDemoOnboarding> = async (input) => {
   const { supabase, orgId } = await scoped();
+  const type = input.organizationType ?? "golf_coach";
   const first = firstNameFrom(input.coachName);
+  const displayName = isCourseLike(type) ? input.businessName : first;
   const { error: coachError } = await supabase
     .from("coach_profiles")
     .update({
@@ -171,35 +191,49 @@ export const saveSupabaseOnboarding: Mirror<typeof saveDemoOnboarding> = async (
       location: input.location,
       timezone: input.timezone,
       booking_provider: input.bookingProvider,
-      booking_url: input.bookingUrl,
+      booking_url: input.bookingUrl || input.teeTimeBookingUrl || "",
       updated_at: new Date().toISOString(),
     })
     .eq("organization_id", orgId);
   throwIf(coachError, "onboarding profile");
-  await supabase.from("organizations").update({ name: input.businessName, updated_at: new Date().toISOString() }).eq("id", orgId);
+  await supabase
+    .from("organizations")
+    .update({
+      name: input.businessName,
+      organization_type: type,
+      course_count: input.courseCount ?? null,
+      access_type: input.accessType ?? null,
+      conversion_goals: [...DEFAULT_CONVERSION_GOALS[type]],
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", orgId);
 
   const { data: widget, error: widgetError } = await supabase.from("widgets").select("*").eq("organization_id", orgId).maybeSingle();
   throwIf(widgetError, "onboarding widget");
   if (widget) {
-    const current = mapWidget(widget, first);
-    const menu = current.menu.map((item) => ({
+    const current = mapWidget(widget, displayName);
+    const baseMenu = defaultMenu(displayName, type);
+    const menu = baseMenu.map((item) => ({
       ...item,
       enabled: item.key === "ask" ? true : input.enabledSections.includes(item.key),
-      title: item.key === "ask" ? `Ask ${first}` : item.key === "coach" ? `About ${first}` : item.title,
     }));
+    const theme = defaultTheme(displayName, type);
     await supabase
       .from("widgets")
       .update({
         status: "active",
         menu,
         theme: {
+          ...theme,
           ...current.theme,
-          assistantName: input.assistantName || `Ask ${first}`,
-          welcomeMessage: input.welcomeMessage || current.theme.welcomeMessage,
-          launcherText: `Ask Coach ${first}`,
+          assistantName: input.assistantName || `Ask ${displayName}`,
+          welcomeMessage: input.welcomeMessage || theme.welcomeMessage,
+          launcherText: isCourseLike(type) ? `Ask ${displayName}` : `Ask Coach ${first}`,
           primaryColor: input.primaryColor || current.theme.primaryColor,
           buttonColor: input.primaryColor || current.theme.buttonColor,
           logoUrl: input.logoUrl !== undefined ? (input.logoUrl.trim() ? input.logoUrl.trim() : undefined) : current.theme.logoUrl,
+          suggestedQuestions: defaultSuggestedQuestions(type),
+          quickActions: defaultQuickActions(type),
         },
         updated_at: new Date().toISOString(),
       })
@@ -208,6 +242,59 @@ export const saveSupabaseOnboarding: Mirror<typeof saveDemoOnboarding> = async (
   }
   if (input.website) {
     await supabase.from("websites").upsert({ organization_id: orgId, url: input.website });
+  }
+  if (input.teeTimeProvider && input.teeTimeProvider !== "none") {
+    const { data: existingLocation } = await supabase.from("locations").select("id").eq("organization_id", orgId).limit(1).maybeSingle();
+    let locationId = existingLocation?.id as string | undefined;
+    if (locationId) {
+      await supabase
+        .from("locations")
+        .update({
+          name: input.businessName,
+          address: input.location,
+          timezone: input.timezone,
+          website: input.website ?? null,
+          tee_time_provider: input.teeTimeProvider,
+          booking_url: input.teeTimeBookingUrl ?? null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", locationId)
+        .eq("organization_id", orgId);
+    } else {
+      const { data: location, error: locationError } = await supabase
+        .from("locations")
+        .insert({
+          organization_id: orgId,
+          name: input.businessName,
+          address: input.location,
+          timezone: input.timezone,
+          website: input.website ?? null,
+          tee_time_provider: input.teeTimeProvider,
+          booking_url: input.teeTimeBookingUrl ?? null,
+        })
+        .select("id")
+        .single();
+      throwIf(locationError, "onboarding location");
+      locationId = location?.id as string;
+    }
+    const status =
+      input.teeTimeProvider === "golfnow"
+        ? "pending_access"
+        : input.teeTimeProvider === "custom_url"
+          ? "connected"
+          : "coming_soon";
+    await supabase.from("booking_integrations").delete().eq("organization_id", orgId).eq("provider", input.teeTimeProvider);
+    const { error: integrationError } = await supabase.from("booking_integrations").insert({
+      organization_id: orgId,
+      location_id: locationId,
+      provider: input.teeTimeProvider,
+      status,
+      configuration: { bookingUrl: input.teeTimeBookingUrl ?? "" },
+      supports_search: input.teeTimeProvider === "golfnow",
+      supports_direct_booking: false,
+      supports_booking_handoff: true,
+    });
+    throwIf(integrationError, "onboarding integration");
   }
   return loadWorkspace(orgId, admin());
 };
@@ -367,6 +454,7 @@ async function writeScannedPage(
   page: ScannedPage,
 ) {
   const now = new Date().toISOString();
+  const classified = categorizeKnowledgePage({ url: page.url, title: page.title, text: page.text });
   const type = page.looksLikeFaq && page.faqs.length > 0 ? "faq" : "website_page";
   const { data: existing } = await client.from("knowledge_sources").select("*").eq("organization_id", orgId).eq("url", page.url).maybeSingle();
   let sourceId: string;
@@ -374,7 +462,7 @@ async function writeScannedPage(
     sourceId = existing.id;
     await client
       .from("knowledge_sources")
-      .update({ title: page.title, type, status: "synced", last_synced_at: now, updated_at: now, error: null })
+      .update({ title: page.title, type, status: "synced", last_synced_at: now, updated_at: now, error: null, category: classified.category, volatility: classified.volatility })
       .eq("id", sourceId)
       .eq("organization_id", orgId);
     await client.from("knowledge_chunks").delete().eq("source_id", sourceId).eq("organization_id", orgId);
@@ -390,6 +478,8 @@ async function writeScannedPage(
         status: "synced",
         include_in_ai: true,
         last_synced_at: now,
+        category: classified.category,
+        volatility: classified.volatility,
       })
       .select("id")
       .single();
@@ -406,6 +496,8 @@ async function writeScannedPage(
     url: page.url,
     content,
     position: index,
+    category: classified.category,
+    volatility: classified.volatility,
   }));
   if (chunks.length > 0) {
     const { error } = await client.from("knowledge_chunks").insert(chunks);
@@ -815,6 +907,13 @@ export const captureSupabasePublicLead: Mirror<typeof captureDemoLead> = async (
       intent_score: mappedConversation?.intentScore ?? 20,
       intent_level: mappedConversation?.intentLevel ?? "low",
       interest: input.interest ?? null,
+      lead_type: input.leadType ?? "lesson",
+      company: input.company ?? null,
+      event_date: input.eventDate ?? null,
+      estimated_players: input.estimatedPlayers ?? null,
+      food_beverage: input.foodBeverage ?? null,
+      membership_interest: input.membershipInterest ?? null,
+      comments: input.comments ?? null,
       source: input.source,
       session_id: input.sessionId,
       idempotency_key: input.idempotencyKey,
@@ -892,7 +991,7 @@ export const recordSupabaseEvent: Mirror<typeof recordDemoEvent> = async (input)
   const client = admin();
   const { data: widget } = await client.from("widgets").select("id, organization_id").eq("id", input.widgetId).maybeSingle();
   if (!widget) throw new Error("WIDGET_NOT_FOUND");
-  const oncePerSession = ["widget_view", "widget_open", "conversation_started", "lead_captured", "booking_clicked", "swing_uploaded"];
+  const oncePerSession = ["widget_view", "widget_open", "lead_captured", "booking_clicked", "swing_uploaded"];
   if (oncePerSession.includes(input.name)) {
     const { data: existing } = await client
       .from("widget_events")
@@ -902,6 +1001,14 @@ export const recordSupabaseEvent: Mirror<typeof recordDemoEvent> = async (input)
       .eq("session_id", input.sessionId)
       .limit(1)
       .maybeSingle();
+    if (existing) return mapEvent(existing);
+  }
+  if (input.name === "conversation_started") {
+    let existingQuery = client.from("widget_events").select("*").eq("widget_id", input.widgetId).eq("event_name", input.name);
+    existingQuery = input.conversationId
+      ? existingQuery.eq("conversation_id", input.conversationId)
+      : existingQuery.eq("session_id", input.sessionId);
+    const { data: existing } = await existingQuery.limit(1).maybeSingle();
     if (existing) return mapEvent(existing);
   }
   const now = new Date().toISOString();
@@ -993,3 +1100,176 @@ export const countSupabaseConversationsThisMonth: Mirror<typeof countDemoConvers
   throwIf(error, "conversation count");
   return count ?? 0;
 };
+
+export async function setSupabaseSourceVolatility(
+  sourceId: string,
+  volatility: WorkspaceData["knowledgeSources"][number]["volatility"],
+) {
+  const { supabase, orgId } = await scoped();
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("knowledge_sources")
+    .update({ volatility, updated_at: now })
+    .eq("id", sourceId)
+    .eq("organization_id", orgId)
+    .select("*")
+    .maybeSingle();
+  throwIf(error, "source volatility");
+  if (data) {
+    await supabase.from("knowledge_chunks").update({ volatility }).eq("source_id", sourceId).eq("organization_id", orgId);
+  }
+  return data ? mapSource(data) : null;
+}
+
+export async function upsertSupabaseStaff(input: {
+  id?: string;
+  name: string;
+  title: string;
+  bio: string;
+  specialties: string[];
+  bookingUrl?: string;
+  email?: string;
+  active: boolean;
+}) {
+  const { supabase, orgId } = await scoped();
+  const payload = {
+    name: input.name,
+    title: input.title,
+    bio: input.bio,
+    specialties: input.specialties,
+    booking_url: input.bookingUrl ?? null,
+    email: input.email ?? null,
+    active: input.active,
+    updated_at: new Date().toISOString(),
+  };
+  if (input.id) {
+    const { data, error } = await supabase.from("staff_members").update(payload).eq("id", input.id).eq("organization_id", orgId).select("*").single();
+    throwIf(error, "update staff");
+    return mapStaff(data);
+  }
+  const { count } = await supabase.from("staff_members").select("id", { count: "exact", head: true }).eq("organization_id", orgId);
+  const { data, error } = await supabase
+    .from("staff_members")
+    .insert({ ...payload, organization_id: orgId, sort_order: count ?? 0 })
+    .select("*")
+    .single();
+  throwIf(error, "create staff");
+  return mapStaff(data);
+}
+
+export async function deleteSupabaseStaff(staffId: string) {
+  const { supabase, orgId } = await scoped();
+  const { count, error } = await supabase.from("staff_members").delete({ count: "exact" }).eq("id", staffId).eq("organization_id", orgId);
+  throwIf(error, "delete staff");
+  return (count ?? 0) > 0;
+}
+
+export async function upsertSupabaseAnnouncement(input: {
+  id?: string;
+  title: string;
+  message: string;
+  startsAt: string;
+  expiresAt?: string;
+  priority: number;
+  active: boolean;
+}) {
+  const { supabase, orgId } = await scoped();
+  const payload = {
+    title: input.title,
+    message: input.message,
+    starts_at: input.startsAt,
+    expires_at: input.expiresAt ?? null,
+    priority: input.priority,
+    active: input.active,
+    updated_at: new Date().toISOString(),
+  };
+  if (input.id) {
+    const { data, error } = await supabase.from("course_announcements").update(payload).eq("id", input.id).eq("organization_id", orgId).select("*").single();
+    throwIf(error, "update announcement");
+    return mapAnnouncement(data);
+  }
+  const { data, error } = await supabase.from("course_announcements").insert({ ...payload, organization_id: orgId }).select("*").single();
+  throwIf(error, "create announcement");
+  return mapAnnouncement(data);
+}
+
+export async function deleteSupabaseAnnouncement(announcementId: string) {
+  const { supabase, orgId } = await scoped();
+  const { count, error } = await supabase.from("course_announcements").delete({ count: "exact" }).eq("id", announcementId).eq("organization_id", orgId);
+  throwIf(error, "delete announcement");
+  return (count ?? 0) > 0;
+}
+
+export async function saveSupabaseBookingIntegration(input: {
+  provider: WorkspaceData["bookingIntegrations"][number]["provider"];
+  bookingUrl?: string;
+  externalFacilityId?: string;
+  locationId?: string;
+}) {
+  const { supabase, orgId } = await scoped();
+  const now = new Date().toISOString();
+  const { golfNowCredentialsFromEnv } = await import("@/lib/tee-times/providers/golfnow");
+  const status =
+    input.provider === "golfnow"
+      ? input.externalFacilityId
+        ? golfNowCredentialsFromEnv()
+          ? "connected"
+          : "pending_access"
+        : "not_connected"
+      : input.provider === "custom_url"
+        ? input.bookingUrl
+          ? "connected"
+          : "not_connected"
+        : "coming_soon";
+  const supportsSearch = input.provider === "golfnow" && status === "connected";
+  const locationId = input.locationId ?? null;
+  await supabase.from("booking_integrations").delete().eq("organization_id", orgId).eq("provider", input.provider);
+  const { data, error } = await supabase
+    .from("booking_integrations")
+    .insert({
+      organization_id: orgId,
+      location_id: locationId,
+      provider: input.provider,
+      status,
+      configuration: { bookingUrl: input.bookingUrl ?? "" },
+      external_facility_id: input.externalFacilityId ?? null,
+      supports_search: supportsSearch,
+      supports_direct_booking: false,
+      supports_booking_handoff: true,
+      updated_at: now,
+    })
+    .select("*")
+    .single();
+  throwIf(error, "save booking integration");
+  if (locationId) {
+    await supabase
+      .from("locations")
+      .update({
+        tee_time_provider: input.provider,
+        booking_url: input.bookingUrl ?? null,
+        external_facility_id: input.externalFacilityId ?? null,
+        updated_at: now,
+      })
+      .eq("id", locationId)
+      .eq("organization_id", orgId);
+  }
+  return mapBookingIntegration(data);
+}
+
+export async function recordSupabaseIntegrationHealth(organizationId: string, input: { ok: boolean; error?: string }) {
+  const client = admin();
+  const { data: current } = await client.from("booking_integrations").select("*").eq("organization_id", organizationId).limit(1).maybeSingle();
+  if (!current) return null;
+  const now = new Date().toISOString();
+  const patch = input.ok
+    ? { last_success_at: now, last_error: null, status: current.status === "error" ? "connected" : current.status, updated_at: now }
+    : {
+        last_error_at: now,
+        last_error: input.error ?? "Provider request failed",
+        status: current.supports_search ? "error" : current.status,
+        updated_at: now,
+      };
+  const { data, error } = await client.from("booking_integrations").update(patch).eq("id", current.id).eq("organization_id", organizationId).select("*").maybeSingle();
+  throwIf(error, "integration health");
+  return data ? mapBookingIntegration(data) : null;
+}

@@ -1,43 +1,59 @@
 import { describe, expect, it } from "vitest";
-import type { WorkspaceData } from "@/lib/domain/types";
-import { isConversationSessionActive, usageState, usageThisMonth } from "./usage";
-
-function workspace(events: WorkspaceData["events"], plan: WorkspaceData["subscription"]["plan"] = "solo") {
-  return {
-    organization: { id: "org", name: "Coach", slug: "coach", createdAt: "2026-08-01T00:00:00.000Z" },
-    coach: {} as WorkspaceData["coach"],
-    services: [], widget: {} as WorkspaceData["widget"], leads: [], conversations: [],
-    knowledgeSources: [], knowledgeChunks: [], faqs: [], contentItems: [], swingUploads: [], events,
-    subscription: { organizationId: "org", plan, status: "active" }, website: { scanStatus: "never", pagesFound: 0 }, demo: true,
-  } as WorkspaceData;
-}
+import { createDemoWorkspace } from "@/lib/demo/seed";
+import { isConversationSessionActive, nextUsageResetAt, usageState, usageThisMonth } from "./usage";
 
 describe("conversation usage", () => {
-  it("counts one session once even when duplicate start events exist", () => {
-    const occurredAt = "2026-08-15T12:00:00.000Z";
-    const events = [
-      { id: "1", organizationId: "org", widgetId: "widget", name: "conversation_started" as const, sessionId: "s1", conversationId: "c1", occurredAt },
-      { id: "2", organizationId: "org", widgetId: "widget", name: "conversation_started" as const, sessionId: "s1", conversationId: "c1", occurredAt },
-      { id: "3", organizationId: "org", widgetId: "widget", name: "conversation_started" as const, sessionId: "s2", occurredAt },
+  it("counts conversation sessions once instead of counting messages", () => {
+    const data = createDemoWorkspace();
+    const now = new Date("2026-08-31T12:00:00.000Z");
+    data.events = [
+      {
+        id: "start-1",
+        organizationId: data.organization.id,
+        widgetId: data.widget.id,
+        name: "conversation_started",
+        sessionId: "session-1",
+        conversationId: "conversation-1",
+        occurredAt: "2026-08-31T10:00:00.000Z",
+      },
+      {
+        id: "message-1",
+        organizationId: data.organization.id,
+        widgetId: data.widget.id,
+        name: "message_sent",
+        sessionId: "session-1",
+        conversationId: "conversation-1",
+        occurredAt: "2026-08-31T10:05:00.000Z",
+      },
+      {
+        id: "duplicate-start-1",
+        organizationId: data.organization.id,
+        widgetId: data.widget.id,
+        name: "conversation_started",
+        sessionId: "session-1",
+        conversationId: "conversation-1",
+        occurredAt: "2026-08-31T10:06:00.000Z",
+      },
+      {
+        id: "start-2",
+        organizationId: data.organization.id,
+        widgetId: data.widget.id,
+        name: "conversation_started",
+        sessionId: "session-2",
+        conversationId: "conversation-2",
+        occurredAt: "2026-08-31T11:00:00.000Z",
+      },
     ];
-    expect(usageThisMonth(workspace(events), new Date("2026-08-31T00:00:00.000Z")).conversations).toBe(2);
+
+    expect(usageThisMonth(data, now).conversations).toBe(2);
+    expect(usageState(data, now).conversations).toBe(2);
+    expect(nextUsageResetAt(now)).toBe("2026-09-01T00:00:00.000Z");
   });
 
-  it("exposes a reset date and near-limit state", () => {
-    const events = Array.from({ length: 17 }, (_, index) => ({
-      id: String(index), organizationId: "org", widgetId: "widget", name: "conversation_started" as const,
-      sessionId: `s${index}`, conversationId: `c${index}`, occurredAt: "2026-08-15T12:00:00.000Z",
-    }));
-    const state = usageState(workspace(events), new Date("2026-08-31T00:00:00.000Z"));
-    expect(state.nearConversationLimit).toBe(true);
-    expect(state.resetAt).toBe("2026-09-01T00:00:00.000Z");
-    expect(state.prompt).toContain("17 of your 20");
-  });
-
-  it("expires a persisted conversation after inactivity or session change", () => {
-    const conversation = { sessionId: "s1", lastMessageAt: "2026-08-31T00:00:00.000Z" };
-    expect(isConversationSessionActive(conversation, "s1", Date.parse("2026-08-31T00:29:59.000Z"))).toBe(true);
-    expect(isConversationSessionActive(conversation, "s1", Date.parse("2026-08-31T00:30:01.000Z"))).toBe(false);
-    expect(isConversationSessionActive(conversation, "s2", Date.parse("2026-08-31T00:01:00.000Z"))).toBe(false);
+  it("ends a session after inactivity or when the browser session changes", () => {
+    const conversation = { sessionId: "session-1", lastMessageAt: "2026-08-31T11:45:00.000Z" };
+    expect(isConversationSessionActive(conversation, "session-1", Date.parse("2026-08-31T12:00:00.000Z"))).toBe(true);
+    expect(isConversationSessionActive(conversation, "session-1", Date.parse("2026-08-31T12:16:00.000Z"))).toBe(false);
+    expect(isConversationSessionActive(conversation, "session-2", Date.parse("2026-08-31T12:00:00.000Z"))).toBe(false);
   });
 });

@@ -62,8 +62,14 @@ export default function PricingPage() {
         </div>
         <div className="pricing-table-wrap">
           <table className="pricing-table">
-            <thead><tr><th scope="col">Plan</th><th scope="col">Price</th><th scope="col">AI conversations</th></tr></thead>
-            <tbody>{cards.map((plan) => <tr key={plan.id}><th scope="row">{plan.name}</th><td>{plan.priceLabel}/mo</td><td>{plan.monthlyConversations}/month</td></tr>)}</tbody>
+            <thead>
+              <tr><th scope="col">Plan</th><th scope="col">Price</th><th scope="col">AI conversations</th></tr>
+            </thead>
+            <tbody>
+              {cards.map((plan) => (
+                <tr key={plan.id}><th scope="row">{plan.name}</th><td>{plan.priceLabel}/mo</td><td>{plan.monthlyConversations}/month</td></tr>
+              ))}
+            </tbody>
           </table>
         </div>
       </section>

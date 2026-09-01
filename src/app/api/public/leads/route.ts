@@ -28,8 +28,29 @@ const schema = z.object({
   consent: z.boolean(),
   smsConsent: z.boolean().optional().default(false),
   /** Honeypot: must stay empty. */
-  company: z.string().max(0).optional(),
+  websiteHp: z.string().max(0).optional(),
   source: z.enum(["hosted", "inline", "floating", "homepage_demo"]),
+  leadType: z
+    .enum([
+      "lesson",
+      "membership",
+      "tournament",
+      "corporate_event",
+      "wedding",
+      "group_outing",
+      "junior_program",
+      "fitting",
+      "simulator",
+      "restaurant_event",
+      "general",
+    ])
+    .optional(),
+  company: z.string().trim().max(160).optional(),
+  eventDate: z.string().trim().max(40).optional(),
+  estimatedPlayers: z.number().int().min(1).max(500).optional(),
+  foodBeverage: z.string().trim().max(200).optional(),
+  membershipInterest: z.string().trim().max(160).optional(),
+  comments: z.string().trim().max(1000).optional(),
   landingPage: z.string().max(500).optional(),
   referrer: z.string().max(500).optional(),
   utm: z
@@ -109,6 +130,13 @@ export async function POST(request: Request) {
       fingerprint,
       summary,
       interest,
+      leadType: input.leadType,
+      company: input.company,
+      eventDate: input.eventDate,
+      estimatedPlayers: input.estimatedPlayers,
+      foodBeverage: input.foodBeverage,
+      membershipInterest: input.membershipInterest,
+      comments: input.comments,
     });
 
     if (conversation && summary) await updateConversationSummary(conversation.id, summary);

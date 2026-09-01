@@ -29,7 +29,7 @@ export function AuthForm({ mode, demoMode }: { mode: "login" | "signup"; demoMod
   return (
     <div className="auth-card">
       <div className="auth-card-heading">
-        <h1>{mode === "signup" ? "Build your coaching widget" : "Welcome back"}</h1>
+        <h1>{mode === "signup" ? "Build your widget" : "Welcome back"}</h1>
         <p>{mode === "signup" ? "Start free. No credit card required." : "Sign in to manage your widget and leads."}</p>
       </div>
       {demoMode ? (

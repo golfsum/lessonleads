@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { LeadType } from "@/lib/domain/types";
 import type { WidgetController } from "./golf-widget";
 
 function randomKey() {
@@ -11,22 +12,33 @@ function randomKey() {
 export function LeadCaptureForm({
   controller,
   compact = false,
+  leadType = "lesson",
   onCaptured,
 }: {
   controller: WidgetController;
   compact?: boolean;
+  leadType?: LeadType;
   onCaptured?: () => void;
 }) {
   const { data, session, context } = controller;
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [company, setCompany] = useState("");
+  const [eventDate, setEventDate] = useState("");
+  const [estimatedPlayers, setEstimatedPlayers] = useState("");
+  const [foodBeverage, setFoodBeverage] = useState("");
+  const [membershipInterest, setMembershipInterest] = useState("");
+  const [comments, setComments] = useState("");
   const [consent, setConsent] = useState(false);
   const [smsConsent, setSmsConsent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [started, setStarted] = useState(false);
   const [idempotencyKey] = useState(randomKey);
+  const tournament = leadType === "tournament" || leadType === "corporate_event" || leadType === "group_outing";
+  const membership = leadType === "membership";
+  const contactName = data.coach.businessName || data.coach.name.split(" ")[0];
 
   const markStarted = () => {
     if (!started) {
@@ -61,6 +73,13 @@ export function LeadCaptureForm({
           consent,
           smsConsent: phone.trim() ? smsConsent : false,
           source,
+          leadType,
+          company: company.trim() || undefined,
+          eventDate: eventDate.trim() || undefined,
+          estimatedPlayers: estimatedPlayers ? Number(estimatedPlayers) : undefined,
+          foodBeverage: foodBeverage.trim() || undefined,
+          membershipInterest: membershipInterest.trim() || undefined,
+          comments: comments.trim() || undefined,
           landingPage: context.page,
           referrer: context.referrer,
           utm: context.utm,
@@ -102,6 +121,20 @@ export function LeadCaptureForm({
           onChange={(event) => setEmail(event.target.value)}
           required
         />
+        {tournament ? (
+          <>
+            <input type="text" placeholder="Company" value={company} onFocus={markStarted} onChange={(event) => setCompany(event.target.value)} />
+            <input type="text" placeholder="Desired date" value={eventDate} onFocus={markStarted} onChange={(event) => setEventDate(event.target.value)} />
+            <input type="number" min={1} placeholder="Estimated players" value={estimatedPlayers} onFocus={markStarted} onChange={(event) => setEstimatedPlayers(event.target.value)} />
+            <input type="text" placeholder="Food and beverage needs" value={foodBeverage} onFocus={markStarted} onChange={(event) => setFoodBeverage(event.target.value)} />
+          </>
+        ) : null}
+        {membership ? (
+          <input type="text" placeholder="Membership interest" value={membershipInterest} onFocus={markStarted} onChange={(event) => setMembershipInterest(event.target.value)} />
+        ) : null}
+        {tournament || membership ? (
+          <input type="text" placeholder="Comments (optional)" value={comments} onFocus={markStarted} onChange={(event) => setComments(event.target.value)} />
+        ) : null}
         <input
           type="tel"
           placeholder="Phone (optional)"
@@ -111,11 +144,11 @@ export function LeadCaptureForm({
           onChange={(event) => setPhone(event.target.value)}
         />
       </div>
-      <input type="text" name="company" tabIndex={-1} autoComplete="off" className="gw-honeypot" aria-hidden="true" />
+      <input type="text" name="websiteHp" tabIndex={-1} autoComplete="off" className="gw-honeypot" aria-hidden="true" />
       <label className="gw-consent">
         <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} />
         <span>
-          {data.coach.name.split(" ")[0]} can contact me about my golf game.
+          {contactName} can contact me about this.
         </span>
       </label>
       {phone.trim() ? (

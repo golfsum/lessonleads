@@ -153,6 +153,7 @@ export async function captureSiteLead(input: {
     consent: input.consent,
     smsConsent: input.smsConsent,
     status: "new",
+    leadType: "lesson",
     intentScore: conversation?.intentScore ?? 20,
     intentLevel: conversation ? conversation.intentLevel : intentLevelForScore(20),
     interest: input.interest,
@@ -200,10 +201,19 @@ export async function recordSiteEvent(input: {
   properties?: Record<string, string | number | boolean | null>;
 }) {
   const mem = memory();
-  const oncePerSession: WidgetEventName[] = ["widget_view", "widget_open", "conversation_started", "lead_captured", "booking_clicked", "swing_uploaded"];
+  const oncePerSession: WidgetEventName[] = ["widget_view", "widget_open", "lead_captured", "booking_clicked", "swing_uploaded"];
   if (oncePerSession.includes(input.name)) {
     const duplicate = mem.events.find(
       (event) => event.widgetId === input.widgetId && event.name === input.name && event.sessionId === input.sessionId,
+    );
+    if (duplicate) return duplicate;
+  }
+  if (input.name === "conversation_started") {
+    const duplicate = mem.events.find(
+      (event) =>
+        event.widgetId === input.widgetId &&
+        event.name === input.name &&
+        (input.conversationId ? event.conversationId === input.conversationId : event.sessionId === input.sessionId),
     );
     if (duplicate) return duplicate;
   }
@@ -229,11 +239,14 @@ export function countRecentSiteLeadsByFingerprint(fingerprint: string, minutes =
 
 export function countSiteConversationsThisMonth() {
   const nowDate = new Date();
-  return memory().events.filter((event) => {
-    if (event.name !== "conversation_started") return false;
+  const conversationKeys = new Set<string>();
+  for (const event of memory().events) {
+    if (event.name !== "conversation_started") continue;
     const date = new Date(event.occurredAt);
-    return date.getUTCFullYear() === nowDate.getUTCFullYear() && date.getUTCMonth() === nowDate.getUTCMonth();
-  }).length;
+    if (date.getUTCFullYear() !== nowDate.getUTCFullYear() || date.getUTCMonth() !== nowDate.getUTCMonth()) continue;
+    conversationKeys.add(event.conversationId ?? `session:${event.sessionId}`);
+  }
+  return conversationKeys.size;
 }
 
 export function countSiteLeadsThisMonth() {

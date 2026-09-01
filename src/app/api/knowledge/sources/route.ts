@@ -1,14 +1,15 @@
 import { z } from "zod";
 import { requireViewer } from "@/lib/auth/session";
-import { addScannedPage, deleteSource, getWorkspaceData, resyncSource, setSourceIncluded } from "@/lib/data/workspace";
+import { addScannedPage, deleteSource, getWorkspaceData, resyncSource, setSourceIncluded, setSourceVolatility } from "@/lib/data/workspace";
 import { scanSinglePage } from "@/lib/knowledge/scan";
 import { hasTrustedOrigin } from "@/lib/security/request";
 
 const addSchema = z.object({ action: z.literal("add_url"), url: z.string().trim().min(4).max(500) });
 const resyncSchema = z.object({ action: z.literal("resync"), sourceId: z.string().min(1).max(100) });
 const toggleSchema = z.object({ action: z.literal("toggle"), sourceId: z.string().min(1).max(100), includeInAi: z.boolean() });
+const volatilitySchema = z.object({ action: z.literal("volatility"), sourceId: z.string().min(1).max(100), volatility: z.enum(["static", "frequently_changing"]) });
 const deleteSchema = z.object({ action: z.literal("delete"), sourceId: z.string().min(1).max(100) });
-const schema = z.discriminatedUnion("action", [addSchema, resyncSchema, toggleSchema, deleteSchema]);
+const schema = z.discriminatedUnion("action", [addSchema, resyncSchema, toggleSchema, volatilitySchema, deleteSchema]);
 
 export async function POST(request: Request) {
   await requireViewer();
@@ -34,6 +35,11 @@ export async function POST(request: Request) {
     }
     if (input.action === "toggle") {
       const source = await setSourceIncluded(input.sourceId, input.includeInAi);
+      if (!source) return Response.json({ error: "Source not found." }, { status: 404 });
+      return Response.json({ ok: true, source });
+    }
+    if (input.action === "volatility") {
+      const source = await setSourceVolatility(input.sourceId, input.volatility);
       if (!source) return Response.json({ error: "Source not found." }, { status: 404 });
       return Response.json({ ok: true, source });
     }

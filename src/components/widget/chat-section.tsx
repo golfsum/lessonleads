@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MessageCard, Service } from "@/lib/domain/types";
+import { isCourseLike } from "@/lib/domain/organization";
 import type { WidgetController } from "./golf-widget";
 import { CheckIcon, MailIcon, PlayIcon, SendIcon, UploadIcon } from "./icons";
 import { LeadCaptureForm } from "./lead-capture-form";
@@ -156,7 +157,7 @@ export function ChatSection({ controller }: { controller: WidgetController }) {
                 card={card}
                 controller={controller}
                 serviceById={serviceById}
-                captured={controller.leadCaptured || captureDone[message.id]}
+                captured={captureDone[message.id]}
                 onCaptured={() => setCaptureDone((previous) => ({ ...previous, [message.id]: true }))}
               />
             ))}
@@ -192,7 +193,9 @@ export function ChatSection({ controller }: { controller: WidgetController }) {
           type="text"
           value={input}
           placeholder={
-            data.coach.name === data.coach.businessName
+            data.organizationType === "golf_course" || data.organizationType === "golf_facility"
+              ? `Ask about tee times, rates, or ${data.coach.businessName}…`
+              : data.coach.name === data.coach.businessName
               ? `Ask about ${data.coach.businessName}\u2026`
               : `Ask about your game or ${data.coach.name.split(" ")[0]}'s coaching\u2026`
           }
@@ -221,7 +224,9 @@ function MessageCardView({
   captured?: boolean;
   onCaptured: () => void;
 }) {
-  const coachFirst = controller.data.coach.name.split(" ")[0];
+  const followUpName = isCourseLike(controller.data.organizationType)
+    ? controller.data.coach.name
+    : controller.data.coach.name.split(/\s+/)[0];
 
   if (card.kind === "video") {
     return (
@@ -269,6 +274,37 @@ function MessageCardView({
     );
   }
 
+  if (card.kind === "staff") {
+    const member = controller.data.staff.find((item) => item.id === card.staffId);
+    if (!member) return null;
+    return (
+      <div className="gw-card gw-service-card">
+        <div className="gw-card-body">
+          <strong>{member.name}</strong>
+          <small>{member.title}</small>
+          {member.bio ? <small>{member.bio}</small> : null}
+        </div>
+        {member.bookingUrl ? (
+          <button type="button" className="gw-button" onClick={() => controller.onExternalUrl(member.bookingUrl!, "booking_clicked")}>
+            Book with {member.name.split(" ")[0]}
+          </button>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (card.kind === "booking_url") {
+    return (
+      <button type="button" className="gw-button gw-card-cta" onClick={() => controller.onExternalUrl(card.url, card.tracking)}>
+        {card.label}
+      </button>
+    );
+  }
+
+  if (card.kind === "tee_times") {
+    return <TeeTimeCards card={card} controller={controller} />;
+  }
+
   if (card.kind === "contact") {
     return (
       <button type="button" className="gw-card gw-action-card" onClick={() => {
@@ -278,25 +314,86 @@ function MessageCardView({
         <MailIcon size={20} />
         <span className="gw-card-body">
           <strong>{card.label}</strong>
-          <small>Send {coachFirst} a message directly</small>
+          <small>Send {followUpName} a message directly</small>
         </span>
       </button>
     );
   }
 
-  // capture
   if (captured) {
     return (
       <div className="gw-card gw-captured">
         <CheckIcon size={15} />
-        <span>You&apos;re all set. {coachFirst} can follow up with you.</span>
+        <span>You&apos;re all set. {followUpName} can follow up with you.</span>
       </div>
     );
   }
   return (
     <div className="gw-card gw-capture-card">
-      <p>{card.prompt}</p>
-      <LeadCaptureForm controller={controller} compact onCaptured={onCaptured} />
+      <p>{card.kind === "capture" ? card.prompt : "Want someone to follow up?"}
+      </p>
+      <LeadCaptureForm controller={controller} compact leadType={card.kind === "capture" ? card.leadType : undefined} onCaptured={onCaptured} />
+    </div>
+  );
+}
+
+export function TeeTimeCards({
+  card,
+  controller,
+}: {
+  card: Extract<MessageCard, { kind: "tee_times" }>;
+  controller: WidgetController;
+}) {
+  const formatTime = (value: string) => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      const match = value.match(/T(\d{2}):(\d{2})/);
+      if (!match) return value;
+      const hours = Number(match[1]);
+      const minutes = match[2];
+      const suffix = hours >= 12 ? "PM" : "AM";
+      const hour12 = hours % 12 || 12;
+      return `${hour12}:${minutes} ${suffix}`;
+    }
+    return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  };
+
+  return (
+    <div className="gw-tee-times">
+      <div className="gw-tee-times-head">
+        <strong>Available Tee Times</strong>
+        {card.demo ? <span className="gw-demo-tag">Demo availability</span> : null}
+      </div>
+      {card.teeTimes.map((teeTime) => (
+        <article className="gw-card gw-tee-card" key={teeTime.externalId}>
+          <div className="gw-card-body">
+            <strong>{formatTime(teeTime.startTime)}</strong>
+            {teeTime.courseName ? <small>{teeTime.courseName}</small> : null}
+            <span className="gw-tee-meta">
+              {teeTime.availablePlayers ? `${teeTime.availablePlayers} players available` : null}
+              {teeTime.pricePerPlayer != null ? ` · $${teeTime.pricePerPlayer}/player` : null}
+              {teeTime.holes ? ` · ${teeTime.holes} holes` : null}
+              {teeTime.cartIncluded === true ? " · Cart included" : teeTime.walkingAllowed === true ? " · Walking allowed" : null}
+            </span>
+            {teeTime.rateName ? <small>{teeTime.rateName}</small> : null}
+          </div>
+          {teeTime.bookable && teeTime.bookingUrl ? (
+            <button
+              type="button"
+              className="gw-button"
+              onClick={() => controller.onExternalUrl(teeTime.bookingUrl!, "tee_time_booking_clicked")}
+            >
+              Book {formatTime(teeTime.startTime)}
+            </button>
+          ) : null}
+        </article>
+      ))}
+      {card.notice ? <small className="gw-tee-notice">{card.notice}</small> : null}
+      {card.bookingUrl ? (
+        <button type="button" className="gw-button gw-secondary" onClick={() => controller.onExternalUrl(card.bookingUrl!, "tee_time_booking_clicked")}>
+          See More Times
+        </button>
+      ) : null}
     </div>
   );
 }

@@ -6,6 +6,7 @@ import {
   countConversationsThisMonth,
   getChatContext,
   getConversation,
+  recordIntegrationHealth,
   recordWidgetEvent,
   updateConversationSummary,
 } from "@/lib/data/workspace";
@@ -92,6 +93,9 @@ export async function POST(request: Request) {
   let conversation: Conversation | null = null;
   if (input.conversationId) {
     const candidate = await getConversation(input.conversationId);
+    // A persisted conversation can outlive the browser tab. Keep a visitor's
+    // active session together, but never attach a fresh session to stale
+    // history (or another visitor/widget).
     if (
       candidate &&
       candidate.visitorId === input.visitorId &&
@@ -133,11 +137,52 @@ export async function POST(request: Request) {
     leadCaptured: Boolean(workingConversation.leadId),
     coach: context.publicWidget.coach,
     assistantName: context.publicWidget.widget.theme.assistantName,
+    organizationType: context.publicWidget.organizationType,
+    organizationId: context.data.organization.id,
     services: context.publicWidget.services,
     contentItems: context.publicWidget.contentItems,
     faqs: context.publicWidget.faqs,
     chunks: context.includedChunks,
+    staff: context.publicWidget.staff,
+    locations: context.data.locations ?? [],
+    announcements: context.publicWidget.announcements,
     suggestedQuestions: context.publicWidget.widget.theme.suggestedQuestions,
+    searchTeeTimes: async (search) => {
+      const teeRate = checkRateLimit(`tee:${fingerprint}:${context.data.organization.id}`, 8, 60_000);
+      if (!teeRate.allowed) {
+        return {
+          teeTimes: [],
+          provider: context.publicWidget.teeTime?.provider ?? "none",
+          searchedAt: new Date().toISOString(),
+          bookingUrl: context.publicWidget.teeTime?.bookingUrl || context.publicWidget.coach.bookingUrl,
+          error: "invalid_request" as const,
+          notice: "Too many tee time searches. Try again in a minute.",
+        };
+      }
+      const { resolveTeeTimeProvider, searchTeeTimesForOrganization } = await import("@/lib/tee-times/resolve");
+      const integration = context.data.bookingIntegrations?.[0];
+      const location =
+        (search.locationId ? context.data.locations.find((item) => item.id === search.locationId) : undefined) ??
+        context.data.locations[0];
+      const provider = resolveTeeTimeProvider({
+        integration,
+        location,
+        bookingUrl: context.publicWidget.teeTime?.bookingUrl || context.publicWidget.coach.bookingUrl,
+        demo: context.publicWidget.teeTime?.demoInventory || context.publicWidget.demo,
+      });
+      const result = await searchTeeTimesForOrganization({
+        organizationId: context.data.organization.id,
+        provider,
+        search: { ...search, organizationId: context.data.organization.id },
+      });
+      if (integration?.supportsSearch && !context.publicWidget.demo) {
+        await recordIntegrationHealth(context.data.organization.id, {
+          ok: result.error !== "provider_unavailable",
+          error: result.error === "provider_unavailable" ? "Provider request failed" : undefined,
+        });
+      }
+      return result;
+    },
   });
 
   const saved = await appendConversationTurn({
@@ -179,6 +224,15 @@ export async function POST(request: Request) {
       sessionId: input.sessionId,
       conversationId: saved.conversation.id,
     });
+    for (const event of result.analytics ?? []) {
+      await recordWidgetEvent({
+        widgetId: context.publicWidget.widget.id,
+        name: event.name,
+        sessionId: input.sessionId,
+        conversationId: saved.conversation.id,
+        properties: event.properties,
+      });
+    }
   }
 
   // Keep the coach-facing summary current once a lead is attached.

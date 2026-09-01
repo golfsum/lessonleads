@@ -462,6 +462,71 @@
   width: auto;
 }
 
+.gw-quick-actions {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 8px 14px 0;
+}
+
+.gw-quick-actions button {
+  flex-shrink: 0;
+  border: 1px solid var(--w-border);
+  background: var(--w-surface);
+  color: var(--w-text);
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.gw-tee-times {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.gw-tee-times-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 2px;
+}
+
+.gw-tee-card .gw-button {
+  margin: 0 13px 12px;
+  width: calc(100% - 26px);
+}
+
+.gw-tee-meta {
+  color: var(--w-muted);
+  font-size: 12.5px;
+}
+
+.gw-tee-notice {
+  color: var(--w-muted);
+  font-size: 12px;
+  padding: 0 2px;
+}
+
+.gw-demo-tag {
+  display: inline-flex;
+  background: color-mix(in srgb, var(--w-accent) 22%, var(--w-bg));
+  color: var(--w-text);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+}
+
+.gw-secondary {
+  background: transparent;
+  color: var(--w-primary);
+  border: 1px solid var(--w-primary);
+}
+
 /* ---------- Buttons + forms ---------- */
 
 .gw-button {

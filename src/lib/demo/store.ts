@@ -24,8 +24,11 @@ import type {
 } from "@/lib/domain/types";
 import { intentLevelForScore } from "@/lib/domain/types";
 import { slugify } from "@/lib/domain/format";
+import { categorizeKnowledgePage } from "@/lib/knowledge/categorize";
 import { chunkText } from "@/lib/knowledge/chunk";
 import type { ScannedPage, WebsiteScanResult } from "@/lib/knowledge/scan";
+import { defaultMenu, defaultQuickActions, defaultSuggestedQuestions, defaultTheme } from "@/lib/domain/defaults";
+import { parseOrganizationType } from "@/lib/domain/organization";
 import { toPublicWidget } from "@/lib/data/mappers";
 import { createDemoWorkspace } from "./seed";
 
@@ -69,6 +72,20 @@ export async function readDemoWorkspace(): Promise<WorkspaceData> {
       await persist(seed);
       return seed;
     }
+    const type = parseOrganizationType(data.organization?.type);
+    data.organization = {
+      ...data.organization,
+      type,
+      conversionGoals: data.organization.conversionGoals?.length
+        ? data.organization.conversionGoals
+        : ["lesson_lead", "lesson_booking"],
+    };
+    data.locations ??= [];
+    data.staff ??= [];
+    data.announcements ??= [];
+    data.bookingIntegrations ??= [];
+    data.widget.theme.quickActions ??= defaultQuickActions(type);
+    for (const lead of data.leads) lead.leadType ??= "lesson";
     return data;
   } catch {
     const seed = createDemoWorkspace();
@@ -203,10 +220,19 @@ export async function recordDemoEvent(input: {
   properties?: Record<string, string | number | boolean | null>;
 }) {
   return mutateDemoWorkspace((data) => {
-    const oncePerSession: WidgetEventName[] = ["widget_view", "widget_open", "conversation_started", "lead_captured", "booking_clicked", "swing_uploaded"];
+    const oncePerSession: WidgetEventName[] = ["widget_view", "widget_open", "lead_captured", "booking_clicked", "swing_uploaded"];
     if (oncePerSession.includes(input.name)) {
       const duplicate = data.events.find(
         (event) => event.widgetId === input.widgetId && event.name === input.name && event.sessionId === input.sessionId,
+      );
+      if (duplicate) return duplicate;
+    }
+    if (input.name === "conversation_started") {
+      const duplicate = data.events.find(
+        (event) =>
+          event.widgetId === input.widgetId &&
+          event.name === input.name &&
+          (input.conversationId ? event.conversationId === input.conversationId : event.sessionId === input.sessionId),
       );
       if (duplicate) return duplicate;
     }
@@ -251,15 +277,18 @@ export async function countDemoLeadsThisMonth(organizationId?: string): Promise<
   }).length;
 }
 
-export async function countDemoConversationsThisMonth(_organizationId?: string): Promise<number> {
-  void _organizationId;
+export async function countDemoConversationsThisMonth(organizationId?: string): Promise<number> {
   const data = await readDemoWorkspace();
+  if (organizationId && data.organization.id !== organizationId) return 0;
   const nowDate = new Date();
-  return data.events.filter((event) => {
-    if (event.name !== "conversation_started") return false;
+  const conversationKeys = new Set<string>();
+  for (const event of data.events) {
+    if (event.name !== "conversation_started") continue;
     const date = new Date(event.occurredAt);
-    return date.getUTCFullYear() === nowDate.getUTCFullYear() && date.getUTCMonth() === nowDate.getUTCMonth();
-  }).length;
+    if (date.getUTCFullYear() !== nowDate.getUTCFullYear() || date.getUTCMonth() !== nowDate.getUTCMonth()) continue;
+    conversationKeys.add(event.conversationId ?? `session:${event.sessionId}`);
+  }
+  return conversationKeys.size;
 }
 
 export async function captureDemoLead(input: {
@@ -281,6 +310,13 @@ export async function captureDemoLead(input: {
   fingerprint: string;
   summary?: string;
   interest?: string;
+  leadType?: Lead["leadType"];
+  company?: string;
+  eventDate?: string;
+  estimatedPlayers?: number;
+  foodBeverage?: string;
+  membershipInterest?: string;
+  comments?: string;
 }) {
   return mutateDemoWorkspace((data) => {
     const existing = data.leads.find((lead) => lead.idempotencyKey === input.idempotencyKey);
@@ -313,6 +349,13 @@ export async function captureDemoLead(input: {
       intentScore: conversation?.intentScore ?? 20,
       intentLevel: conversation ? conversation.intentLevel : intentLevelForScore(20),
       interest: input.interest,
+      leadType: input.leadType ?? "lesson",
+      company: input.company,
+      eventDate: input.eventDate,
+      estimatedPlayers: input.estimatedPlayers,
+      foodBeverage: input.foodBeverage,
+      membershipInterest: input.membershipInterest,
+      comments: input.comments,
       source: input.source,
       sessionId: input.sessionId,
       idempotencyKey: input.idempotencyKey,
@@ -464,6 +507,7 @@ export async function updateDemoLeadNotes(leadId: string, notes: string) {
 }
 
 export async function saveDemoOnboarding(input: {
+  organizationType?: WorkspaceData["organization"]["type"];
   coachName: string;
   businessName: string;
   email: string;
@@ -472,6 +516,10 @@ export async function saveDemoOnboarding(input: {
   timezone: string;
   bookingProvider: WorkspaceData["coach"]["bookingProvider"];
   bookingUrl: string;
+  teeTimeProvider?: WorkspaceData["locations"][number]["teeTimeProvider"];
+  teeTimeBookingUrl?: string;
+  courseCount?: number;
+  accessType?: WorkspaceData["organization"]["accessType"];
   enabledSections: string[];
   assistantName?: string;
   welcomeMessage?: string;
@@ -479,7 +527,11 @@ export async function saveDemoOnboarding(input: {
   logoUrl?: string;
 }) {
   return mutateDemoWorkspace((data) => {
+    const type = input.organizationType ?? data.organization.type ?? "golf_coach";
     data.organization.name = input.businessName;
+    data.organization.type = type;
+    data.organization.courseCount = input.courseCount;
+    data.organization.accessType = input.accessType;
     Object.assign(data.coach, {
       name: input.coachName,
       businessName: input.businessName,
@@ -491,27 +543,59 @@ export async function saveDemoOnboarding(input: {
       bookingUrl: input.bookingUrl,
     });
     const firstName = input.coachName.split(" ")[0] || input.coachName;
-    const theme = data.widget.theme;
-    theme.assistantName = input.assistantName || `Ask ${firstName}`;
-    if (input.welcomeMessage) theme.welcomeMessage = input.welcomeMessage;
-    if (input.primaryColor) {
-      theme.primaryColor = input.primaryColor;
-      theme.buttonColor = input.primaryColor;
-    }
-    if (input.logoUrl !== undefined) {
-      theme.logoUrl = input.logoUrl.trim() ? input.logoUrl.trim() : undefined;
-    }
-    theme.launcherText = `Ask Coach ${firstName}`;
-    for (const item of data.widget.menu) {
-      item.enabled = input.enabledSections.includes(item.key);
-      if (item.key === "ask") {
-        item.enabled = true;
-        item.title = `Ask ${firstName}`;
-      }
-      if (item.key === "coach") item.title = `About ${firstName}`;
+    const displayName = type === "golf_course" || type === "golf_facility" ? input.businessName : firstName;
+    data.widget.theme = {
+      ...defaultTheme(displayName, type),
+      ...data.widget.theme,
+      assistantName: input.assistantName || `Ask ${displayName}`,
+      welcomeMessage: input.welcomeMessage || data.widget.theme.welcomeMessage,
+      primaryColor: input.primaryColor || data.widget.theme.primaryColor,
+      buttonColor: input.primaryColor || data.widget.theme.buttonColor,
+      logoUrl: input.logoUrl !== undefined ? (input.logoUrl.trim() ? input.logoUrl.trim() : undefined) : data.widget.theme.logoUrl,
+      launcherText: type === "golf_course" || type === "golf_facility" ? `Ask ${displayName}` : `Ask Coach ${firstName}`,
+      suggestedQuestions: data.widget.theme.suggestedQuestions?.length ? data.widget.theme.suggestedQuestions : defaultSuggestedQuestions(type),
+      quickActions: defaultQuickActions(type),
+    };
+    const courseMenu = defaultMenu(displayName, type);
+    if (input.enabledSections.length > 0) {
+      data.widget.menu = courseMenu.map((item) => ({
+        ...item,
+        enabled: item.key === "ask" ? true : input.enabledSections.includes(item.key),
+      }));
     }
     data.widget.status = "active";
     data.widget.updatedAt = new Date().toISOString();
+    if (input.teeTimeProvider && input.teeTimeProvider !== "none") {
+      const locationId = data.locations[0]?.id ?? randomUUID();
+      data.locations = [
+        {
+          id: locationId,
+          organizationId: data.organization.id,
+          name: input.businessName,
+          address: input.location,
+          timezone: input.timezone,
+          website: input.website,
+          teeTimeProvider: input.teeTimeProvider,
+          bookingUrl: input.teeTimeBookingUrl,
+          sortOrder: 0,
+        },
+      ];
+      data.bookingIntegrations = [
+        {
+          id: data.bookingIntegrations[0]?.id ?? randomUUID(),
+          organizationId: data.organization.id,
+          locationId,
+          provider: input.teeTimeProvider,
+          status: input.teeTimeProvider === "golfnow" ? "pending_access" : input.teeTimeProvider === "custom_url" ? "connected" : "coming_soon",
+          configuration: { bookingUrl: input.teeTimeBookingUrl ?? "" },
+          supportsSearch: input.teeTimeProvider === "golfnow",
+          supportsDirectBooking: false,
+          supportsBookingHandoff: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ];
+    }
     return data;
   });
 }
@@ -610,6 +694,7 @@ export async function applyDemoWebsiteScan(scan: WebsiteScanResult) {
 }
 
 function applyScannedPage(data: WorkspaceData, page: ScannedPage, now: string) {
+  const classified = categorizeKnowledgePage({ url: page.url, title: page.title, text: page.text });
   const type = page.looksLikeFaq && page.faqs.length > 0 ? "faq" : "website_page";
   let source = data.knowledgeSources.find((candidate) => candidate.url === page.url);
   if (!source) {
@@ -625,6 +710,8 @@ function applyScannedPage(data: WorkspaceData, page: ScannedPage, now: string) {
       lastSyncedAt: now,
       createdAt: now,
       updatedAt: now,
+      category: classified.category,
+      volatility: classified.volatility,
     };
     data.knowledgeSources.push(source);
   } else {
@@ -633,6 +720,8 @@ function applyScannedPage(data: WorkspaceData, page: ScannedPage, now: string) {
     source.lastSyncedAt = now;
     source.updatedAt = now;
     source.error = undefined;
+    source.category = classified.category;
+    source.volatility = classified.volatility;
   }
   // Re-index: replace this source's chunks instead of accumulating duplicates.
   data.knowledgeChunks = data.knowledgeChunks.filter((chunk) => chunk.sourceId !== source.id);
@@ -649,6 +738,8 @@ function applyScannedPage(data: WorkspaceData, page: ScannedPage, now: string) {
       content,
       position: index,
       updatedAt: now,
+      category: classified.category,
+      volatility: classified.volatility,
     });
   });
   // Structured FAQs replace previous ones from the same source.
@@ -819,7 +910,6 @@ export async function addDemoContentItems(items: Array<Omit<ContentItem, "id" | 
           sourceType: "youtube_video",
           title: contentItem.title,
           url: contentItem.url,
-          category: contentItem.categories[0],
           content,
           position: index,
           updatedAt: now,
@@ -866,5 +956,174 @@ export async function updateDemoConversationSummary(conversationId: string, summ
       if (lead) lead.summary = summary;
     }
     return conversation;
+  });
+}
+
+export async function setDemoSourceVolatility(sourceId: string, volatility: WorkspaceData["knowledgeSources"][number]["volatility"]) {
+  return mutateDemoWorkspace((data) => {
+    const source = data.knowledgeSources.find((candidate) => candidate.id === sourceId);
+    if (!source) return null;
+    source.volatility = volatility;
+    source.updatedAt = new Date().toISOString();
+    for (const chunk of data.knowledgeChunks) {
+      if (chunk.sourceId === sourceId) chunk.volatility = volatility;
+    }
+    return source;
+  });
+}
+
+export async function upsertDemoStaff(input: {
+  id?: string;
+  name: string;
+  title: string;
+  bio: string;
+  specialties: string[];
+  bookingUrl?: string;
+  email?: string;
+  active: boolean;
+}) {
+  return mutateDemoWorkspace((data) => {
+    const existing = input.id ? data.staff.find((member) => member.id === input.id) : undefined;
+    if (existing) {
+      Object.assign(existing, input);
+      return existing;
+    }
+    const member = {
+      id: randomUUID(),
+      organizationId: data.organization.id,
+      name: input.name,
+      title: input.title,
+      bio: input.bio,
+      specialties: input.specialties,
+      bookingUrl: input.bookingUrl,
+      email: input.email,
+      sortOrder: data.staff.length,
+      active: input.active,
+    };
+    data.staff.push(member);
+    return member;
+  });
+}
+
+export async function deleteDemoStaff(staffId: string) {
+  return mutateDemoWorkspace((data) => {
+    const index = data.staff.findIndex((member) => member.id === staffId);
+    if (index === -1) return false;
+    data.staff.splice(index, 1);
+    return true;
+  });
+}
+
+export async function upsertDemoAnnouncement(input: {
+  id?: string;
+  title: string;
+  message: string;
+  startsAt: string;
+  expiresAt?: string;
+  priority: number;
+  active: boolean;
+}) {
+  return mutateDemoWorkspace((data) => {
+    const existing = input.id ? data.announcements.find((item) => item.id === input.id) : undefined;
+    if (existing) {
+      Object.assign(existing, input);
+      return existing;
+    }
+    const announcement = {
+      id: randomUUID(),
+      organizationId: data.organization.id,
+      title: input.title,
+      message: input.message,
+      startsAt: input.startsAt,
+      expiresAt: input.expiresAt,
+      priority: input.priority,
+      active: input.active,
+    };
+    data.announcements.unshift(announcement);
+    return announcement;
+  });
+}
+
+export async function deleteDemoAnnouncement(announcementId: string) {
+  return mutateDemoWorkspace((data) => {
+    const index = data.announcements.findIndex((item) => item.id === announcementId);
+    if (index === -1) return false;
+    data.announcements.splice(index, 1);
+    return true;
+  });
+}
+
+export async function saveDemoBookingIntegration(input: {
+  provider: WorkspaceData["bookingIntegrations"][number]["provider"];
+  bookingUrl?: string;
+  externalFacilityId?: string;
+  locationId?: string;
+}) {
+  return mutateDemoWorkspace((data) => {
+    const now = new Date().toISOString();
+    const existing = data.bookingIntegrations.find((item) => item.provider === input.provider && (item.locationId ?? "") === (input.locationId ?? data.locations[0]?.id ?? ""));
+    const status =
+      input.provider === "golfnow"
+        ? input.externalFacilityId
+          ? "pending_access"
+          : "not_connected"
+        : input.provider === "custom_url"
+          ? input.bookingUrl
+            ? "connected"
+            : "not_connected"
+          : input.provider === "demo"
+            ? "connected"
+            : "coming_soon";
+    const supportsSearch = input.provider === "golfnow" || input.provider === "demo";
+    if (existing) {
+      existing.status = status;
+      existing.configuration = { ...existing.configuration, bookingUrl: input.bookingUrl ?? "" };
+      existing.externalFacilityId = input.externalFacilityId;
+      existing.supportsSearch = supportsSearch;
+      existing.supportsBookingHandoff = true;
+      existing.updatedAt = now;
+    } else {
+      data.bookingIntegrations = [
+        {
+          id: randomUUID(),
+          organizationId: data.organization.id,
+          locationId: input.locationId ?? data.locations[0]?.id,
+          provider: input.provider,
+          status,
+          configuration: { bookingUrl: input.bookingUrl ?? "" },
+          externalFacilityId: input.externalFacilityId,
+          supportsSearch,
+          supportsDirectBooking: false,
+          supportsBookingHandoff: true,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ];
+    }
+    if (data.locations[0]) {
+      data.locations[0].teeTimeProvider = input.provider;
+      data.locations[0].bookingUrl = input.bookingUrl;
+      data.locations[0].externalFacilityId = input.externalFacilityId;
+    }
+    return data.bookingIntegrations[0];
+  });
+}
+
+export async function recordDemoIntegrationHealth(input: { ok: boolean; error?: string }) {
+  return mutateDemoWorkspace((data) => {
+    const integration = data.bookingIntegrations[0];
+    if (!integration) return null;
+    const now = new Date().toISOString();
+    if (input.ok) {
+      integration.lastSuccessAt = now;
+      integration.lastError = undefined;
+      if (integration.status === "error") integration.status = "connected";
+    } else {
+      integration.lastErrorAt = now;
+      integration.lastError = input.error ?? "Provider request failed";
+      if (integration.supportsSearch) integration.status = "error";
+    }
+    integration.updatedAt = now;
+    return integration;
   });
 }

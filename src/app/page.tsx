@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, BookOpen, Check, Inbox, MessageCircle, Play, ShieldCheck, Upload, Video } from "lucide-react";
+import { ArrowRight, BookOpen, Check, Flag, Inbox, MessageCircle, Play, ShieldCheck, Target, Upload, Users, Video } from "lucide-react";
+import type { Route } from "next";
 import { Logo } from "@/components/brand/logo";
 import { HomeDemo } from "@/components/marketing/home-demo";
 import { BottomCta, MarketingFooter } from "@/components/marketing/marketing-shell";
@@ -14,7 +15,7 @@ const structuredData = {
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
   description:
-    "An embeddable widget for golf coaches that answers visitor questions from the coach's own content, captures qualified leads, and hands them to the coach's booking system.",
+    "An embeddable widget for golf businesses that answers visitor questions from their own content, captures qualified leads, and helps golfers book lessons or tee times.",
   offers: [
     { "@type": "Offer", name: plans.free.name, price: String(plans.free.priceCents / 100), priceCurrency: "USD" },
     { "@type": "Offer", name: plans.solo.name, price: String(plans.solo.priceCents / 100), priceCurrency: "USD" },
@@ -76,18 +77,18 @@ export default function HomePage() {
 
         <div className="hero-grid page-width">
           <div className="hero-copy">
-            <p className="eyebrow">For golf coaches and instructors</p>
-            <h1>Turn your golf website into a <span>24/7 lesson funnel.</span></h1>
+            <p className="eyebrow">For golf coaches, academies, and courses</p>
+            <h1>Turn your golf website into a <span>booking and lead engine.</span></h1>
             <p className="hero-lede">
-              LessonLeads learns from your website, videos, and coaching content — then answers golfers&apos; questions,
-              captures qualified leads, and sends them to the right lesson.
+              LessonLeads answers visitor questions using your own content, helps golfers find the right service,
+              and turns website traffic into lessons, tee times, memberships, and qualified inquiries.
             </p>
             <div className="hero-actions">
               <Link className="button button-primary" href="/signup">
-                Build your widget <ArrowRight size={17} />
+                Build Your Widget <ArrowRight size={17} />
               </Link>
               <Link className="button button-secondary" href="/demo">
-                <Play size={16} fill="currentColor" /> See it in action
+                <Play size={16} fill="currentColor" /> See a Demo
               </Link>
             </div>
             <ul className="trust-list" aria-label="Product assurances">
@@ -121,6 +122,35 @@ export default function HomePage() {
               <p>Even when a golfer isn&apos;t ready to book, you get their name, email, and exactly what they&apos;re working on.</p>
             </div>
           </aside>
+        </div>
+      </section>
+
+      <section className="audience-section page-width">
+        <div className="value-heading">
+          <p className="eyebrow">Built for golf businesses</p>
+          <h2>Same widget. Different conversion for each kind of golf operation.</h2>
+        </div>
+        <div className="audience-grid">
+          <Link className="audience-card" href={"/for/golf-coaches" as Route}>
+            <Target size={22} />
+            <h3>Golf Coaches</h3>
+            <p>Turn swing questions into lesson leads.</p>
+          </Link>
+          <Link className="audience-card" href={"/for/golf-coaches" as Route}>
+            <Users size={22} />
+            <h3>Golf Academies</h3>
+            <p>Guide golfers toward the right coach or program.</p>
+          </Link>
+          <Link className="audience-card" href={"/for/golf-courses" as Route}>
+            <Flag size={22} />
+            <h3>Golf Courses</h3>
+            <p>Answer common questions and help golfers find tee times.</p>
+          </Link>
+          <Link className="audience-card" href={"/for/golf-coaches" as Route}>
+            <BookOpen size={22} />
+            <h3>Fitting Studios</h3>
+            <p>Qualify golfers and turn equipment questions into fitting appointments.</p>
+          </Link>
         </div>
       </section>
 
@@ -172,7 +202,9 @@ export default function HomePage() {
               <p className="eyebrow">{plan.name}</p>
               <div className="plan-price"><strong>{plan.priceLabel}</strong><span>{plan.priceNote}</span></div>
               <p>{plan.description}</p>
-              <ul>{plan.features.map((feature) => <li key={feature}><Check size={16} /> {feature}</li>)}</ul>
+              <ul>
+                {plan.features.map((feature) => <li key={feature}><Check size={16} /> {feature}</li>)}
+              </ul>
               <Link className="button button-secondary" href="/signup">{plan.cta}</Link>
             </article>
           ))}

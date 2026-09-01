@@ -3,6 +3,7 @@ import type {
   ContentItem,
   Conversation,
   FaqItem,
+  KnowledgeCategory,
   KnowledgeChunk,
   KnowledgeSource,
   Lead,
@@ -20,7 +21,7 @@ const ORG_ID = "org_desert_fairways";
 const COACH_ID = "coach_mike_smith";
 const WIDGET_ID = "widget_mike_smith";
 
-function chunksFor(source: { id: string; type: KnowledgeSource["type"]; title: string; url?: string }, contents: string[], category?: string): KnowledgeChunk[] {
+function chunksFor(source: { id: string; type: KnowledgeSource["type"]; title: string; url?: string }, contents: string[], category?: KnowledgeCategory): KnowledgeChunk[] {
   return contents.map((content, index) => ({
     id: `${source.id}_chunk_${index}`,
     organizationId: ORG_ID,
@@ -155,6 +156,11 @@ export function createDemoWorkspace(): WorkspaceData {
         "Do you offer online coaching?",
         "Can I upload my swing?",
       ],
+      quickActions: [
+        { id: "qa_ask", key: "ask", label: "Ask a Question", enabled: true, sortOrder: 0 },
+        { id: "qa_lesson", key: "lessons", label: "Book Lesson", enabled: true, sortOrder: 1 },
+        { id: "qa_swing", key: "swing", label: "Upload Swing", enabled: true, sortOrder: 2 },
+      ],
     },
     menu: [
       { id: "menu_ask", key: "ask", title: "Ask Mike", icon: "chat", enabled: true, sortOrder: 1 },
@@ -196,11 +202,11 @@ export function createDemoWorkspace(): WorkspaceData {
       "A slice almost always comes from a clubface that is open relative to your swing path at impact. Before changing your swing, check ball flight: if the ball starts straight and curves right, your face is open to the path. If it starts right and stays right, the path itself is the bigger issue.",
       "The fastest slice fix I teach: strengthen your lead-hand grip so you can see two and a half knuckles at address, then feel like the toe of the club beats the heel through impact. Most slicers try to steer the face square, which slows the club down and leaves it open. Let the face rotate.",
       "Drill: place an alignment stick just outside the ball on your target line. To miss the stick you have to swing more from the inside, which shallows the path and helps the face square up. Ten slow swings, then three at full speed. The ball should start right of your target and draw back.",
-    ], "Driver"),
+    ]),
     ...chunksFor({ id: "src_putting_article", type: "website_page", title: "Putting Fundamentals", url: "https://mikesmithgolf.example/blog/putting-fundamentals" }, [
       "Three-putts almost always come from poor speed, not poor line. On putts over 20 feet, your only goal is to leave the ball inside a three-foot circle around the hole. Distance control comes from the length of your stroke, never from hitting at the ball harder.",
       "The ladder drill fixes speed fast: putt to the fringe from 20, 30, and 40 feet, trying to finish each ball within a putter length of the previous one. Five minutes before every round is enough to calibrate the greens that day.",
-    ], "Putting"),
+    ]),
     ...chunksFor({ id: "src_manual_juniors", type: "manual", title: "Junior program details" }, [
       "Junior lessons are available for ages 8 and older. Sessions are 45 minutes and focus on fun and fundamentals: grip, setup, and making confident contact. Parents are welcome to watch. Junior group clinics run in summer; ask Mike for the current schedule.",
     ]),
@@ -397,6 +403,7 @@ export function createDemoWorkspace(): WorkspaceData {
       smsConsent: false,
       preferredContact: "email",
       status: "new",
+      leadType: "lesson",
       intentScore: 82,
       intentLevel: "high",
       interest: "Driver slice / online swing analysis",
@@ -429,6 +436,7 @@ export function createDemoWorkspace(): WorkspaceData {
       consent: true,
       smsConsent: false,
       status: "contacted",
+      leadType: "lesson",
       intentScore: 44,
       intentLevel: "medium",
       interest: "Putting / private lesson",
@@ -460,6 +468,7 @@ export function createDemoWorkspace(): WorkspaceData {
       consent: false,
       smsConsent: false,
       status: "booked",
+      leadType: "lesson",
       intentScore: 58,
       intentLevel: "medium",
       interest: "Junior lessons for his son",
@@ -553,7 +562,14 @@ export function createDemoWorkspace(): WorkspaceData {
   pushEvent("message_sent", "session_anon1", daysAgo(1, 4), { conversationId: "conv_anon" });
 
   return {
-    organization: { id: ORG_ID, name: "Mike Smith Golf", slug: "desert-fairways", createdAt: daysAgo(30) },
+    organization: {
+      id: ORG_ID,
+      name: "Mike Smith Golf",
+      slug: "desert-fairways",
+      type: "golf_coach",
+      conversionGoals: ["lesson_lead", "lesson_booking"],
+      createdAt: daysAgo(30),
+    },
     coach: {
       id: COACH_ID,
       organizationId: ORG_ID,
@@ -574,6 +590,10 @@ export function createDemoWorkspace(): WorkspaceData {
       bookingUrl: "https://calendly.com/mikesmithgolf",
       notificationPrefs: { newLead: true, highIntentLead: true, swingUpload: true, bookingClick: true, everyConversation: false },
     },
+    locations: [],
+    staff: [],
+    announcements: [],
+    bookingIntegrations: [],
     services,
     widget,
     leads,
