@@ -5,6 +5,7 @@ import { LeadNotes } from "@/components/dashboard/lead-notes";
 import { LeadStatusControl } from "@/components/dashboard/lead-status";
 import { getWorkspaceData } from "@/lib/data/workspace";
 import { formatPrice } from "@/lib/domain/format";
+import { LEAD_TYPE_LABELS } from "@/lib/domain/types";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +42,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             <h1>{lead.firstName} {lead.lastName ?? ""}</h1>
             <p>
               <i className={`intent-pill ${lead.intentLevel}`}>{lead.intentLevel} intent</i>
+              {" "}&middot; {LEAD_TYPE_LABELS[lead.leadType]}
               {" "}&middot; captured {dateTimeFormat.format(new Date(lead.createdAt))} &middot; via {lead.source.replaceAll("_", " ")}
             </p>
           </div>
@@ -82,6 +84,12 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             {profileRows.map(([label, value]) => <div key={label}><dt>{label}</dt><dd className="capitalize">{value}</dd></div>)}
             {profileRows.length === 0 ? <div><dt>Profile</dt><dd>Nothing captured yet.</dd></div> : null}
             {lead.interest ? <div><dt>Interest</dt><dd className="capitalize">{lead.interest}</dd></div> : null}
+            {lead.company ? <div><dt>Company</dt><dd>{lead.company}</dd></div> : null}
+            {lead.eventDate ? <div><dt>Desired date</dt><dd>{lead.eventDate}</dd></div> : null}
+            {lead.estimatedPlayers ? <div><dt>Estimated players</dt><dd>{lead.estimatedPlayers}</dd></div> : null}
+            {lead.foodBeverage ? <div><dt>Food and beverage</dt><dd>{lead.foodBeverage}</dd></div> : null}
+            {lead.membershipInterest ? <div><dt>Membership interest</dt><dd>{lead.membershipInterest}</dd></div> : null}
+            {lead.comments ? <div><dt>Comments</dt><dd>{lead.comments}</dd></div> : null}
           </dl>
         </article>
 

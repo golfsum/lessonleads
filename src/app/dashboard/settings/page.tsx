@@ -1,6 +1,7 @@
 import { BillingNotice } from "@/components/dashboard/billing-notice";
 import { CheckoutButton } from "@/components/dashboard/checkout-button";
 import { SettingsForm } from "@/components/dashboard/settings-form";
+import { UsageIndicator } from "@/components/dashboard/usage-indicator";
 import { refreshSubscriptionFromStripe } from "@/lib/billing/sync-subscription";
 import { getWorkspaceData } from "@/lib/data/workspace";
 import { isPlanId, plans } from "@/lib/billing/plans";
@@ -49,12 +50,11 @@ export default async function SettingsPage({
           <p className="eyebrow">Current plan</p>
           <h2>{plan.name}</h2>
           <strong>{plan.priceCents === 0 ? "$0" : `${plan.priceLabel} per month`}</strong>
+          <UsageIndicator used={usage.conversations} limit={usage.conversationLimit} resetAt={usage.resetAt} />
           <p>
             {planId === "free"
-              ? `${usage.conversations} of ${plan.monthlyConversations} visitor conversations and ${usage.leads} of ${plan.monthlyLeads} leads this month. Dashboard preview is unlimited.`
-              : planId === "solo"
-                ? `${usage.conversations} of ${plan.monthlyConversations} visitor conversations this month. Unlimited leads, your branding.`
-                : `${usage.conversations} of ${plan.monthlyConversations} visitor conversations this month. YouTube, swing uploads, and analytics included.`}
+              ? `${usage.conversations} of ${plan.conversationLimit} AI conversations and ${usage.leads} of ${plan.monthlyLeads} leads this month. Dashboard preview is unlimited.`
+              : `${usage.conversations} of ${plan.conversationLimit} AI conversations this month. ${plan.description}`}
           </p>
           <ul className="plan-feature-list">
             {plan.features.map((feature) => <li key={feature}>{feature}</li>)}
@@ -62,12 +62,19 @@ export default async function SettingsPage({
           {planId === "free" ? (
             <>
               <CheckoutButton currentPlan={planId} targetPlan="solo" />
-              <CheckoutButton currentPlan={planId} targetPlan="pro" label="See Pro · $79/mo" />
+              <CheckoutButton currentPlan={planId} targetPlan="pro" />
+              <CheckoutButton currentPlan={planId} targetPlan="academy" />
             </>
           ) : planId === "solo" ? (
             <>
               <CheckoutButton currentPlan={planId} targetPlan="pro" />
+              <CheckoutButton currentPlan={planId} targetPlan="academy" />
               <CheckoutButton currentPlan={planId} targetPlan="solo" label="Manage billing" />
+            </>
+          ) : planId === "pro" ? (
+            <>
+              <CheckoutButton currentPlan={planId} targetPlan="academy" />
+              <CheckoutButton currentPlan={planId} targetPlan="pro" label="Manage billing" />
             </>
           ) : (
             <CheckoutButton currentPlan={planId} targetPlan="pro" />

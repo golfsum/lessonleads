@@ -57,8 +57,10 @@ The core entities remain vertical-agnostic: organizations, members, coaches, off
 
 ## Pricing and value metric
 
-- Free: one finder, 50 starts per month, lead capture, redirect, and LessonLeads branding
-- Pro: $29 per month, increased usage, branding removal, customization, analytics, conditional logic, and multiple offerings
+- Free: one finder, 5 AI conversations per month, up to 3 leads, lead capture, redirect, and LessonLeads branding
+- Solo: $19 per month for independent coaches, with 20 AI conversations per month and the core lead-conversion tools
+- Pro: $39 per month for coaches using video and online content, with 50 AI conversations per month and advanced conversion tools
+- Academy: $59 per month for multi-coach businesses, with 100 AI conversations per month, team access, and lead routing
 
 The current value metric is successful qualified lead capture. Plan state and entitlements are server-authoritative.
 

@@ -4,6 +4,7 @@ import { Globe, Pencil, Plus, RefreshCw, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { FaqItem, KnowledgeSource, WebsiteInfo } from "@/lib/domain/types";
+import { KNOWLEDGE_CATEGORY_LABELS } from "@/lib/knowledge/categorize";
 
 const dateFormat = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
@@ -185,6 +186,7 @@ export function KnowledgeManager({ sources, faqs, website }: { sources: Knowledg
                 <strong>{source.title}</strong>
                 <small>
                   {typeLabels[source.type]}
+                  {source.category ? ` · ${KNOWLEDGE_CATEGORY_LABELS[source.category]}` : ""}
                   {source.lastSyncedAt ? ` · synced ${dateFormat.format(new Date(source.lastSyncedAt))}` : ""}
                   {source.status === "error" ? ` · error: ${source.error ?? "sync failed"}` : ""}
                 </small>
@@ -198,6 +200,14 @@ export function KnowledgeManager({ sources, faqs, website }: { sources: Knowledg
                   />
                   <i /><span>AI</span>
                 </label>
+                <select
+                  aria-label={`How often ${source.title} changes`}
+                  onChange={(event) => void sourceAction({ action: "volatility", sourceId: source.id, volatility: event.target.value }, source.id)}
+                  value={source.volatility ?? "static"}
+                >
+                  <option value="static">Static</option>
+                  <option value="frequently_changing">Frequently changing</option>
+                </select>
                 {source.url && source.type === "website_page" ? (
                   <button
                     aria-label={`Re-sync ${source.title}`}

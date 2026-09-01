@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { requireViewer } from "@/lib/auth/session";
 import { applyWebsiteScan, setWebsiteScanStatus } from "@/lib/data/workspace";
+import { categorizeKnowledgePage } from "@/lib/knowledge/categorize";
 import { normalizeWebsiteUrl, scanWebsite } from "@/lib/knowledge/scan";
 import { hasTrustedOrigin } from "@/lib/security/request";
 
@@ -29,7 +30,10 @@ export async function POST(request: Request) {
     return Response.json({
       ok: true,
       pagesIndexed: scan.pages.length,
-      pages: scan.pages.map((page) => ({ url: page.url, title: page.title, faqCount: page.faqs.length })),
+      pages: scan.pages.map((page) => {
+        const classified = categorizeKnowledgePage({ url: page.url, title: page.title, text: page.text });
+        return { url: page.url, title: page.title, faqCount: page.faqs.length, category: classified.category };
+      }),
       detected: scan.detected,
     });
   } catch (error) {

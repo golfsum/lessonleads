@@ -6,12 +6,14 @@ import {
   countConversationsThisMonth,
   getChatContext,
   getConversation,
+  recordIntegrationHealth,
   recordWidgetEvent,
   updateConversationSummary,
 } from "@/lib/data/workspace";
 import { getViewer } from "@/lib/auth/session";
 import type { Conversation } from "@/lib/domain/types";
 import { conversationLimit, visitorConversationLimitMessage } from "@/lib/billing/plans";
+import { isConversationSessionActive } from "@/lib/billing/usage";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { widgetOriginAllowed } from "@/lib/security/origins";
 import { requestFingerprint } from "@/lib/security/request";
@@ -37,11 +39,17 @@ export async function GET(request: Request) {
   const coachId = url.searchParams.get("coachId") ?? "";
   const conversationId = url.searchParams.get("conversationId") ?? "";
   const visitorId = url.searchParams.get("visitorId") ?? "";
+  const sessionId = url.searchParams.get("sessionId") ?? "";
   if (!coachId || !conversationId || visitorId.length < 8) return Response.json({ error: "Invalid request." }, { status: 400 });
   const context = await getChatContext(coachId);
   if (!context) return Response.json({ error: "Widget not found." }, { status: 404 });
   const conversation = await getConversation(conversationId);
-  if (!conversation || conversation.visitorId !== visitorId || conversation.widgetId !== context.publicWidget.widget.id) {
+  if (
+    !conversation ||
+    conversation.visitorId !== visitorId ||
+    conversation.widgetId !== context.publicWidget.widget.id ||
+    (sessionId.length >= 8 && !isConversationSessionActive(conversation, sessionId))
+  ) {
     return Response.json({ messages: [] });
   }
   return Response.json({
@@ -83,7 +91,20 @@ export async function POST(request: Request) {
   }
 
   let conversation: Conversation | null = null;
-  if (input.conversationId) conversation = await getConversation(input.conversationId);
+  if (input.conversationId) {
+    const candidate = await getConversation(input.conversationId);
+    // A persisted conversation can outlive the browser tab. Keep a visitor's
+    // active session together, but never attach a fresh session to stale
+    // history (or another visitor/widget).
+    if (
+      candidate &&
+      candidate.visitorId === input.visitorId &&
+      candidate.widgetId === context.publicWidget.widget.id &&
+      isConversationSessionActive(candidate, input.sessionId)
+    ) {
+      conversation = candidate;
+    }
+  }
   const isNewConversation = !conversation;
   const preview = Boolean(input.preview) && Boolean(await getViewer());
 
@@ -91,7 +112,7 @@ export async function POST(request: Request) {
     const limit = conversationLimit(context.publicWidget.plan);
     const used = await countConversationsThisMonth(context.data.organization.id);
     if (used >= limit) {
-      return Response.json({ error: visitorConversationLimitMessage }, { status: 429 });
+      return Response.json({ error: visitorConversationLimitMessage, usage: { used, limit, remaining: 0 } }, { status: 429 });
     }
   }
 
@@ -116,11 +137,52 @@ export async function POST(request: Request) {
     leadCaptured: Boolean(workingConversation.leadId),
     coach: context.publicWidget.coach,
     assistantName: context.publicWidget.widget.theme.assistantName,
+    organizationType: context.publicWidget.organizationType,
+    organizationId: context.data.organization.id,
     services: context.publicWidget.services,
     contentItems: context.publicWidget.contentItems,
     faqs: context.publicWidget.faqs,
     chunks: context.includedChunks,
+    staff: context.publicWidget.staff,
+    locations: context.data.locations ?? [],
+    announcements: context.publicWidget.announcements,
     suggestedQuestions: context.publicWidget.widget.theme.suggestedQuestions,
+    searchTeeTimes: async (search) => {
+      const teeRate = checkRateLimit(`tee:${fingerprint}:${context.data.organization.id}`, 8, 60_000);
+      if (!teeRate.allowed) {
+        return {
+          teeTimes: [],
+          provider: context.publicWidget.teeTime?.provider ?? "none",
+          searchedAt: new Date().toISOString(),
+          bookingUrl: context.publicWidget.teeTime?.bookingUrl || context.publicWidget.coach.bookingUrl,
+          error: "invalid_request" as const,
+          notice: "Too many tee time searches. Try again in a minute.",
+        };
+      }
+      const { resolveTeeTimeProvider, searchTeeTimesForOrganization } = await import("@/lib/tee-times/resolve");
+      const integration = context.data.bookingIntegrations?.[0];
+      const location =
+        (search.locationId ? context.data.locations.find((item) => item.id === search.locationId) : undefined) ??
+        context.data.locations[0];
+      const provider = resolveTeeTimeProvider({
+        integration,
+        location,
+        bookingUrl: context.publicWidget.teeTime?.bookingUrl || context.publicWidget.coach.bookingUrl,
+        demo: context.publicWidget.teeTime?.demoInventory || context.publicWidget.demo,
+      });
+      const result = await searchTeeTimesForOrganization({
+        organizationId: context.data.organization.id,
+        provider,
+        search: { ...search, organizationId: context.data.organization.id },
+      });
+      if (integration?.supportsSearch && !context.publicWidget.demo) {
+        await recordIntegrationHealth(context.data.organization.id, {
+          ok: result.error !== "provider_unavailable",
+          error: result.error === "provider_unavailable" ? "Provider request failed" : undefined,
+        });
+      }
+      return result;
+    },
   });
 
   const saved = await appendConversationTurn({
@@ -162,6 +224,15 @@ export async function POST(request: Request) {
       sessionId: input.sessionId,
       conversationId: saved.conversation.id,
     });
+    for (const event of result.analytics ?? []) {
+      await recordWidgetEvent({
+        widgetId: context.publicWidget.widget.id,
+        name: event.name,
+        sessionId: input.sessionId,
+        conversationId: saved.conversation.id,
+        properties: event.properties,
+      });
+    }
   }
 
   // Keep the coach-facing summary current once a lead is attached.

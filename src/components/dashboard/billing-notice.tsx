@@ -39,8 +39,10 @@ export function BillingNotice({
         <strong>You are on {plan.name}</strong>
         <p>
           {planId === "solo"
-            ? "Thanks for upgrading. Your widget now has 150 visitor conversations a month, unlimited leads, and your branding."
-            : "Thanks for upgrading. Your widget now includes YouTube, swing uploads, analytics, and 1,000 visitor conversations a month."}
+            ? "Thanks for upgrading. Your widget now has 20 AI conversations a month, unlimited leads, and your branding."
+            : planId === "pro"
+              ? "Thanks for upgrading. Your widget now includes YouTube, swing uploads, analytics, and 50 AI conversations a month."
+              : "Thanks for upgrading. Your widget now includes multiple coaches, lead routing, team access, and 100 AI conversations a month."}
         </p>
       </div>
     </section>

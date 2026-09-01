@@ -3,11 +3,13 @@
 import { ArrowDown, ArrowUp, Monitor, Plus, Smartphone, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import type { LauncherIcon, LauncherStyle, PublicWidget, WidgetMenuIcon, WidgetMenuItem, WidgetSectionKey, WidgetTheme } from "@/lib/domain/types";
+import type { LauncherIcon, LauncherStyle, OrganizationType, PublicWidget, WidgetMenuIcon, WidgetMenuItem, WidgetSectionKey, WidgetTheme } from "@/lib/domain/types";
+import { WIDGET_MENU_ICONS } from "@/lib/domain/types";
+import { isCourseLike } from "@/lib/domain/organization";
 import { GolfWidget } from "@/components/widget/golf-widget";
 import { LogoUrlField } from "@/components/widget/logo-url-field";
 
-const standardSections: Array<{ key: WidgetSectionKey; title: string; icon: WidgetMenuIcon }> = [
+const coachSections: Array<{ key: WidgetSectionKey; title: string; icon: WidgetMenuIcon }> = [
   { key: "ask", title: "Ask", icon: "chat" },
   { key: "lessons", title: "Lessons", icon: "flag" },
   { key: "videos", title: "Videos", icon: "video" },
@@ -19,7 +21,42 @@ const standardSections: Array<{ key: WidgetSectionKey; title: string; icon: Widg
   { key: "contact", title: "Contact", icon: "mail" },
 ];
 
-const iconOptions: WidgetMenuIcon[] = ["chat", "flag", "video", "person", "target", "book", "question", "upload", "mail", "link"];
+const courseSections: Array<{ key: WidgetSectionKey; title: string; icon: WidgetMenuIcon }> = [
+  { key: "ask", title: "Ask", icon: "chat" },
+  { key: "tee_times", title: "Tee Times", icon: "calendar" },
+  { key: "course", title: "Course", icon: "flag" },
+  { key: "lessons", title: "Lessons", icon: "target" },
+  { key: "events", title: "Events", icon: "ticket" },
+  { key: "staff", title: "Golf Staff", icon: "users" },
+  { key: "membership", title: "Membership", icon: "person" },
+  { key: "rates", title: "Rates", icon: "book" },
+  { key: "practice", title: "Practice", icon: "target" },
+  { key: "dining", title: "Dining", icon: "utensils" },
+  { key: "pro_shop", title: "Pro Shop", icon: "shop" },
+  { key: "tournaments", title: "Tournaments", icon: "flag" },
+  { key: "weddings", title: "Weddings", icon: "ticket" },
+  { key: "simulator", title: "Simulator", icon: "target" },
+  { key: "faq", title: "FAQ", icon: "question" },
+  { key: "contact", title: "Contact", icon: "mail" },
+  { key: "directions", title: "Directions", icon: "map" },
+];
+
+function standardSections(type: OrganizationType) {
+  if (isCourseLike(type)) return courseSections;
+  if (type === "golf_academy") {
+    return [
+      { key: "ask", title: "Ask", icon: "chat" },
+      { key: "lessons", title: "Lessons", icon: "flag" },
+      { key: "staff", title: "Coaches", icon: "person" },
+      { key: "videos", title: "Videos", icon: "video" },
+      { key: "faq", title: "FAQ", icon: "question" },
+      { key: "contact", title: "Contact", icon: "mail" },
+    ] as Array<{ key: WidgetSectionKey; title: string; icon: WidgetMenuIcon }>;
+  }
+  return coachSections;
+}
+
+const iconOptions: WidgetMenuIcon[] = [...WIDGET_MENU_ICONS];
 
 const launcherIcons: Record<LauncherIcon, string> = {
   chat: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
@@ -108,7 +145,7 @@ export function WidgetBuilder({ publicWidget }: { publicWidget: PublicWidget }) 
   }
 
   function addSection(key: WidgetSectionKey) {
-    const template = standardSections.find((section) => section.key === key);
+    const template = standardSections(publicWidget.organizationType).find((section) => section.key === key);
     if (!template) return;
     setMenu((previous) => [
       ...previous,
@@ -116,7 +153,7 @@ export function WidgetBuilder({ publicWidget }: { publicWidget: PublicWidget }) 
     ]);
   }
 
-  const missingSections = standardSections.filter((section) => !menu.some((item) => item.key === section.key));
+  const missingSections = standardSections(publicWidget.organizationType).filter((section) => !menu.some((item) => item.key === section.key));
 
   async function save() {
     setBusy(true);
@@ -132,6 +169,7 @@ export function WidgetBuilder({ publicWidget }: { publicWidget: PublicWidget }) 
           coachAvatarUrl: theme.coachAvatarUrl ?? "",
           assistantAvatarUrl: theme.assistantAvatarUrl ?? "",
           suggestedQuestions: suggested.split("\n").map((line) => line.trim()).filter(Boolean).slice(0, 6),
+          quickActions: theme.quickActions,
         },
         menu: menu.map((item, index) => ({
           ...item,
@@ -220,6 +258,35 @@ export function WidgetBuilder({ publicWidget }: { publicWidget: PublicWidget }) 
             <label className="span-two">Coach photo URL (optional)<input maxLength={500} onChange={(event) => setThemeField("coachAvatarUrl", event.target.value || undefined)} type="url" value={theme.coachAvatarUrl ?? ""} placeholder="https://yoursite.com/photo.jpg" /></label>
             <label className="span-two">Assistant avatar URL (optional)<input maxLength={500} onChange={(event) => setThemeField("assistantAvatarUrl", event.target.value || undefined)} type="url" value={theme.assistantAvatarUrl ?? ""} placeholder="https://yoursite.com/assistant.png" /></label>
             <label className="span-two">Suggested questions (one per line, up to 6)<textarea onChange={(event) => setSuggested(event.target.value)} rows={4} value={suggested} /></label>
+            <div className="span-two">
+              <span className="field-hint">Quick actions on the Ask screen</span>
+              {(theme.quickActions ?? []).map((action) => (
+                <label className="toggle" key={action.id}>
+                  <input
+                    checked={action.enabled}
+                    onChange={(event) =>
+                      setThemeField(
+                        "quickActions",
+                        (theme.quickActions ?? []).map((item) => (item.id === action.id ? { ...item, enabled: event.target.checked } : item)),
+                      )
+                    }
+                    type="checkbox"
+                  />
+                  <i />
+                  <input
+                    aria-label={`Label for ${action.key}`}
+                    maxLength={40}
+                    onChange={(event) =>
+                      setThemeField(
+                        "quickActions",
+                        (theme.quickActions ?? []).map((item) => (item.id === action.id ? { ...item, label: event.target.value } : item)),
+                      )
+                    }
+                    value={action.label}
+                  />
+                </label>
+              ))}
+            </div>
           </div>
         </section>
 
@@ -335,7 +402,7 @@ export function WidgetBuilder({ publicWidget }: { publicWidget: PublicWidget }) 
         <div className={`preview-stage ${device}`}>
           <GolfWidget data={draft} key={`${previewKey}-${device}`} preview />
         </div>
-        <small className="install-note">The preview is fully interactive. Test chats do not count toward your monthly visitor conversations.</small>
+        <small className="install-note">The preview is fully interactive. Test chats do not count toward your monthly AI conversations.</small>
       </aside>
     </div>
   );

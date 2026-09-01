@@ -136,10 +136,11 @@ export function buildSiteWorkspace(): WorkspaceData {
       "src_site_pricing",
       "Plans and pricing",
       [
-        `Free is ${plans.free.priceLabel}. ${plans.free.description} It includes up to ${plans.free.monthlyConversations} visitor conversations per month, ${plans.free.monthlyLeads} leads, and LessonLeads branding on the widget.`,
-        `Solo is ${plans.solo.priceLabel} ${plans.solo.priceNote}. ${plans.solo.description} It includes up to ${plans.solo.monthlyConversations} visitor conversations, unlimited leads, and your branding with no LessonLeads footer.`,
-        `Pro is ${plans.pro.priceLabel} ${plans.pro.priceNote}. ${plans.pro.description} It includes up to ${plans.pro.monthlyConversations} visitor conversations, unlimited leads, YouTube import, swing uploads, follow-ups, and conversion analytics.`,
-        "A visitor conversation counts when someone on your website sends their first message. Opening the widget, browsing plans, and chatting in the dashboard preview do not count.",
+        `Free is ${plans.free.priceLabel}. ${plans.free.description} It includes up to ${plans.free.monthlyConversations} AI conversations per month, ${plans.free.monthlyLeads} leads, and LessonLeads branding on the widget.`,
+        `Solo is ${plans.solo.priceLabel} ${plans.solo.priceNote}. ${plans.solo.description} It includes ${plans.solo.monthlyConversations} AI conversations per month and unlimited leads, plus custom widget branding, website knowledge, booking handoff, conversation history, and analytics.`,
+        `Pro is ${plans.pro.priceLabel} ${plans.pro.priceNote}. ${plans.pro.description} It includes ${plans.pro.monthlyConversations} AI conversations per month, everything in Solo, YouTube knowledge, video recommendations, swing uploads, follow-up tools, and conversion analytics.`,
+        `Academy is ${plans.academy.priceLabel} ${plans.academy.priceNote}. ${plans.academy.description} It includes ${plans.academy.monthlyConversations} AI conversations per month, everything in Pro, multiple coaches, multiple services, lead routing, team access, and academy-level analytics.`,
+        "An AI conversation is one visitor session, not every message. Opening the widget, browsing plans, and chatting in the dashboard preview do not count.",
         `Start at lessonleads.com/signup. No card is required for Free.`,
       ].join(" "),
       0,
@@ -188,7 +189,7 @@ export function buildSiteWorkspace(): WorkspaceData {
     faq(
       "faq_site_cost",
       "How much does it cost?",
-      "Free is $0 with 5 visitor conversations and 3 leads per month. Solo is $29/month with 150 conversations and unlimited leads. Pro is $79/month with 1,000 conversations, YouTube, swing uploads, and analytics.",
+      `Free is ${plans.free.priceLabel} with ${plans.free.monthlyConversations} AI conversations and ${plans.free.monthlyLeads} leads per month. Solo is ${plans.solo.priceLabel}/month with ${plans.solo.monthlyConversations} AI conversations. Pro is ${plans.pro.priceLabel}/month with ${plans.pro.monthlyConversations} AI conversations. Academy is ${plans.academy.priceLabel}/month with ${plans.academy.monthlyConversations} AI conversations for multi-coach businesses.`,
       2,
     ),
     faq(
@@ -200,7 +201,7 @@ export function buildSiteWorkspace(): WorkspaceData {
     faq(
       "faq_site_branding",
       "Can I use my own logo and colors?",
-      "Yes. Add your site logo and brand colors in onboarding or under Widget in the dashboard. Solo and Pro remove the LessonLeads footer.",
+      "Yes. Add your site logo and brand colors in onboarding or under Widget in the dashboard. Solo, Pro, and Academy include custom widget branding.",
       4,
     ),
     faq(
@@ -246,10 +247,21 @@ export function buildSiteWorkspace(): WorkspaceData {
       description: `${plans.pro.description} ${plans.pro.features.join(" ")}`,
       priceCents: plans.pro.priceCents,
       priceLabel: `${plans.pro.priceLabel}/mo`,
-      ctaLabel: "Start with Pro",
+      ctaLabel: "Go Pro",
       featured: false,
       bestFor: ["YouTube", "swing uploads", "analytics"],
       sortOrder: 2,
+    }),
+    planService({
+      id: "svc_site_academy",
+      name: plans.academy.name,
+      description: `${plans.academy.description} ${plans.academy.features.join(" ")}`,
+      priceCents: plans.academy.priceCents,
+      priceLabel: `${plans.academy.priceLabel}/mo`,
+      ctaLabel: "Start Academy",
+      featured: false,
+      bestFor: ["multiple coaches", "lead routing", "team access"],
+      sortOrder: 3,
     }),
   ];
 
@@ -258,6 +270,8 @@ export function buildSiteWorkspace(): WorkspaceData {
       id: SITE_ORG_ID,
       name: "LessonLeads",
       slug: SITE_WIDGET_PUBLIC_ID,
+      type: "golf_coach",
+      conversionGoals: ["lesson_lead", "lesson_booking"],
       createdAt: now,
     },
     coach: {
@@ -285,6 +299,10 @@ export function buildSiteWorkspace(): WorkspaceData {
       profilePhotoUrl: logoUrl,
       notificationPrefs: { ...DEFAULT_NOTIFICATION_PREFS, newLead: true, highIntentLead: true },
     },
+    locations: [],
+    staff: [],
+    announcements: [],
+    bookingIntegrations: [],
     services,
     widget: {
       id: SITE_WIDGET_ID,
@@ -317,6 +335,10 @@ export function buildSiteWorkspace(): WorkspaceData {
           "What's included on each plan?",
           "Will it work with Calendly or CoachNow?",
           "How do I put this on my site?",
+        ],
+        quickActions: [
+          { id: "qa_ask", key: "ask", label: "Ask a Question", enabled: true, sortOrder: 0 },
+          { id: "qa_lesson", key: "lessons", label: "See plans", enabled: true, sortOrder: 1 },
         ],
       },
       menu: [

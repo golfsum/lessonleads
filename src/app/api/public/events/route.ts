@@ -15,6 +15,9 @@ const eventName = z.enum([
   "swing_uploaded",
   "booking_clicked",
   "contact_clicked",
+  "tee_time_search",
+  "tee_time_result_viewed",
+  "tee_time_booking_clicked",
 ]);
 
 const schema = z.object({

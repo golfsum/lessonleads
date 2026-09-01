@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { PublicWidget, Service, WidgetSectionKey } from "@/lib/domain/types";
 import { CloseIcon, menuIcon } from "./icons";
 import { ChatSection } from "./chat-section";
-import { CoachSection, ContactSection, FaqSection, LessonsSection, LibrarySection, VideosSection } from "./sections";
+import { CoachSection, ContactSection, CourseInfoSection, FaqSection, LessonsSection, LibrarySection, StaffSection, TeeTimesSection, VideosSection } from "./sections";
 import { SwingSection } from "./swing-section";
 import { loadSession, readPageContext, saveConversationId, saveLeadCaptured, sendWidgetEvent, type PageContext, type WidgetSession } from "./session";
 
@@ -18,6 +18,7 @@ export interface WidgetController {
   openSection: (key: WidgetSectionKey) => void;
   trackEvent: (name: string, properties?: Record<string, string | number | boolean | null>) => void;
   onBookingClick: (service?: Service) => void;
+  onExternalUrl: (url: string, eventName?: "tee_time_booking_clicked" | "booking_clicked") => void;
   onVideoView: (contentId: string, url: string) => void;
   onLeadCaptured: (leadId: string) => void;
   onConversationId: (conversationId: string) => void;
@@ -42,10 +43,12 @@ export function GolfWidget({ data, embedded = false, preview = false }: { data: 
 
   useEffect(() => {
     const loaded = loadSession(preview ? `preview-${publicId}` : publicId);
+    /* eslint-disable react-hooks/set-state-in-effect -- client sessionStorage bootstrap */
     setSession(loaded);
     setLeadCaptured(loaded.leadCaptured);
-    conversationIdRef.current = loaded.conversationId;
     setContext(readPageContext());
+    /* eslint-enable react-hooks/set-state-in-effect */
+    conversationIdRef.current = loaded.conversationId;
     if (!preview) sendWidgetEvent({ coachId: publicId, name: "widget_open", sessionId: loaded.sessionId });
   }, [publicId, preview]);
 
@@ -83,13 +86,20 @@ export function GolfWidget({ data, embedded = false, preview = false }: { data: 
         });
       }
       const url = service?.bookingUrl || data.coach.bookingUrl;
-      if (url) {
-        try {
-          window.open(new URL(url, window.location.origin).toString(), "_blank", "noopener");
-        } catch {
-          window.open(url, "_blank", "noopener");
-        }
+      openUrl(url);
+    },
+    onExternalUrl: (url, eventName = "booking_clicked") => {
+      if (!preview) {
+        sendWidgetEvent({
+          coachId: publicId,
+          name: eventName,
+          sessionId: session.sessionId,
+          conversationId: conversationIdRef.current,
+          leadId: session.leadId,
+          properties: { url },
+        });
       }
+      openUrl(url);
     },
     onVideoView: (contentId, url) => {
       if (!preview) {
@@ -149,6 +159,31 @@ export function GolfWidget({ data, embedded = false, preview = false }: { data: 
           </button>
         ) : null}
       </header>
+      {theme.quickActions?.some((action) => action.enabled) && active === "ask" ? (
+        <div className="gw-quick-actions">
+          {theme.quickActions
+            .filter((action) => action.enabled)
+            .sort((a, b) => a.sortOrder - b.sortOrder)
+            .map((action) => (
+              <button
+                key={action.id}
+                type="button"
+                onClick={() => {
+                  if (action.key === "ask") setActive("ask");
+                  else if (action.key === "tee_times") setActive("tee_times");
+                  else if (action.key === "lessons") setActive("lessons");
+                  else if (action.key === "swing") setActive("swing");
+                  else if (action.key === "contact") setActive("contact");
+                  else if (action.key === "rates") setActive(enabledMenu.some((item) => item.key === "rates") ? "rates" : "ask");
+                  else if (action.key === "membership") setActive(enabledMenu.some((item) => item.key === "membership") ? "membership" : "ask");
+                  else if (action.key === "events") setActive(enabledMenu.some((item) => item.key === "events") ? "events" : "ask");
+                }}
+              >
+                {action.label}
+              </button>
+            ))}
+        </div>
+      ) : null}
 
       <div className="gw-body">
         {active === "ask" ? <ChatSection controller={controller} /> : null}
@@ -158,6 +193,11 @@ export function GolfWidget({ data, embedded = false, preview = false }: { data: 
         {active === "custom" ? <LessonsSection controller={controller} /> : null}
         {active === "videos" ? <VideosSection controller={controller} /> : null}
         {active === "coach" ? <CoachSection controller={controller} /> : null}
+        {active === "staff" ? <StaffSection controller={controller} /> : null}
+        {active === "tee_times" ? <TeeTimesSection controller={controller} /> : null}
+        {active === "course" || active === "rates" || active === "membership" || active === "events" || active === "practice" || active === "dining" || active === "pro_shop" || active === "tournaments" || active === "weddings" || active === "simulator" || active === "directions" ? (
+          <CourseInfoSection controller={controller} section={active} />
+        ) : null}
         {active === "faq" ? <FaqSection controller={controller} /> : null}
         {active === "swing" ? <SwingSection controller={controller} /> : null}
         {active === "contact" ? <ContactSection controller={controller} /> : null}
@@ -193,6 +233,15 @@ export function GolfWidget({ data, embedded = false, preview = false }: { data: 
       ) : null}
     </div>
   );
+}
+
+function openUrl(url?: string) {
+  if (!url) return;
+  try {
+    window.open(new URL(url, window.location.origin).toString(), "_blank", "noopener");
+  } catch {
+    window.open(url, "_blank", "noopener");
+  }
 }
 
 function initials(name: string) {

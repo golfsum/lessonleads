@@ -100,7 +100,7 @@ export function SwingSection({ controller }: { controller: WidgetController }) {
         </p>
         {data.services.some((service) => service.mode !== "in_person") ? (
           <button type="button" className="gw-button" onClick={() => controller.openSection("lessons")}>
-            See {coachFirst}'s lessons
+            See {coachFirst}&apos;s lessons
           </button>
         ) : null}
       </div>

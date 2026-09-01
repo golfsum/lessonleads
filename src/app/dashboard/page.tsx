@@ -1,9 +1,12 @@
 import Link from "next/link";
-import { ArrowRight, CalendarCheck, Clapperboard, Flame, MessagesSquare, MousePointerClick, UsersRound } from "lucide-react";
+import { ArrowRight, CalendarCheck, Clapperboard, Flag, Flame, MessagesSquare, MousePointerClick, UsersRound } from "lucide-react";
 import { UsageBanner } from "@/components/dashboard/usage-banner";
+import { UsageIndicator } from "@/components/dashboard/usage-indicator";
 import { calculateAnalytics } from "@/lib/analytics";
 import { usageState } from "@/lib/billing/usage";
 import { getWorkspaceData } from "@/lib/data/workspace";
+import { isCourseLike } from "@/lib/domain/organization";
+import { LEAD_TYPE_LABELS } from "@/lib/domain/types";
 
 export const dynamic = "force-dynamic";
 
@@ -13,27 +16,45 @@ export default async function DashboardOverviewPage() {
   const data = await getWorkspaceData();
   const analytics = calculateAnalytics(data);
   const usage = usageState(data);
-  const stats = [
-    { label: "Widget opens", value: analytics.widgetOpens, icon: MousePointerClick },
-    { label: "Conversations", value: analytics.conversations, icon: MessagesSquare },
-    { label: "Leads captured", value: analytics.leads, icon: UsersRound },
-    { label: "High-intent leads", value: analytics.highIntentLeads, icon: Flame },
-    { label: "Booking clicks", value: analytics.bookingClicks, icon: CalendarCheck },
-    { label: "Swing uploads", value: analytics.swingUploads, icon: Clapperboard },
-  ];
+  const course = isCourseLike(data.organization.type);
+  const stats = course
+    ? [
+        { label: "Widget opens", value: analytics.widgetOpens, icon: MousePointerClick },
+        { label: "AI Conversations", value: analytics.conversations, icon: MessagesSquare },
+        { label: "Tee time searches", value: analytics.teeTimeSearches, icon: Flag },
+        { label: "Booking clicks", value: analytics.teeTimeBookingClicks, icon: CalendarCheck },
+        { label: "Membership leads", value: analytics.membershipLeads, icon: UsersRound },
+        { label: "Tournament leads", value: analytics.tournamentLeads, icon: Flame },
+      ]
+    : [
+        { label: "Widget opens", value: analytics.widgetOpens, icon: MousePointerClick },
+        { label: "AI Conversations", value: analytics.conversations, icon: MessagesSquare },
+        { label: "Leads Captured", value: analytics.leads, icon: UsersRound },
+        { label: "High-intent leads", value: analytics.highIntentLeads, icon: Flame },
+        { label: "Booking Clicks", value: analytics.bookingClicks, icon: CalendarCheck },
+        { label: "Swing uploads", value: analytics.swingUploads, icon: Clapperboard },
+      ];
   const widgetLive = data.widget.status === "active";
+  const headline = course
+    ? analytics.teeTimeSearches > 0
+      ? `Your widget handled ${analytics.conversations} conversations and ${analytics.teeTimeSearches} tee time searches.`
+      : "Your widget is ready to turn website visits into tee times and inquiries."
+    : analytics.leads > 0
+      ? `Your widget turned ${analytics.conversations} conversations into ${analytics.leads} lesson leads.`
+      : "Your widget is ready to turn website visitors into lesson leads.";
   return (
     <div className="dashboard-page">
+      <UsageIndicator used={usage.conversations} limit={usage.conversationLimit} resetAt={usage.resetAt} />
       <UsageBanner currentPlan={data.subscription.plan} prompt={usage.prompt} />
       <section className="value-banner">
         <div>
           <p className="eyebrow">This month</p>
-          <h1>
-            {analytics.leads > 0
-              ? `Your widget turned ${analytics.conversations} conversations into ${analytics.leads} lesson leads.`
-              : "Your widget is ready to turn website visitors into lesson leads."}
-          </h1>
-          <p>Every lead arrives with the golfer&apos;s conversation, intent level, and the lesson they were pointed to.</p>
+          <h1>{headline}</h1>
+          <p>
+            {course
+              ? "Booking clicks are golfers who opened the tee sheet, not confirmed rounds. Tournament and membership inquiries land in Leads."
+              : "Every lead arrives with the golfer's conversation, intent level, and the lesson they were pointed to."}
+          </p>
         </div>
         <Link className="button button-light" href="/dashboard/leads">Open lead inbox <ArrowRight size={16} /></Link>
       </section>
@@ -49,7 +70,10 @@ export default async function DashboardOverviewPage() {
             {data.leads.slice(0, 5).map((lead) => (
               <Link href={`/dashboard/leads/${lead.id}`} key={lead.id}>
                 <span className="avatar">{lead.firstName[0]}{(lead.lastName?.[0] ?? "")}</span>
-                <div><strong>{lead.firstName} {lead.lastName ?? ""}</strong><small>{lead.interest ?? lead.email}</small></div>
+                <div>
+                  <strong>{lead.firstName} {lead.lastName ?? ""}</strong>
+                  <small>{LEAD_TYPE_LABELS[lead.leadType]} · {lead.interest ?? lead.company ?? lead.email}</small>
+                </div>
                 <span className={`intent-pill ${lead.intentLevel}`}>{lead.intentLevel} intent</span>
                 <span className={`status ${lead.status}`}>{lead.status.replaceAll("_", " ")}</span>
               </Link>
@@ -58,7 +82,7 @@ export default async function DashboardOverviewPage() {
           </div>
         </article>
         <article className="panel funnel-panel">
-          <div className="panel-heading"><div><p className="eyebrow">Conversion funnel</p><h2>Visitor to booking click</h2></div></div>
+          <div className="panel-heading"><div><p className="eyebrow">Conversion funnel</p><h2>{course ? "Visitor to booking click" : "Visitor to booking click"}</h2></div></div>
           {analytics.funnel.map((stage, index) => {
             const first = analytics.funnel[0]?.count ?? 0;
             const width = first > 0 ? Math.max((stage.count / first) * 100, 4) : 4;
@@ -75,11 +99,19 @@ export default async function DashboardOverviewPage() {
 
       <section className="dashboard-grid half">
         <article className="panel">
-          <div className="panel-heading"><div><p className="eyebrow">What golfers ask about</p><h2>Top topics</h2></div></div>
-          <div className="bar-list">
-            {analytics.topTopics.map((item) => <div key={item.label}><span className="capitalize">{item.label}</span><div><i style={{ width: `${item.percentage}%` }} /></div><strong>{item.percentage}%</strong></div>)}
-            {analytics.topTopics.length === 0 ? <p className="empty-state">Topics appear once golfers start chatting.</p> : null}
-          </div>
+          <div className="panel-heading"><div><p className="eyebrow">{course ? "High-value inquiries" : "What golfers ask about"}</p><h2>{course ? "Lead types" : "Top topics"}</h2></div></div>
+          {course ? (
+            <div className="bar-list">
+              {analytics.leadFunnels.map((item) => (
+                <div key={item.label}><span>{item.label}</span><div><i style={{ width: `${Math.max(item.count * 8, item.count ? 8 : 0)}%` }} /></div><strong>{item.count}</strong></div>
+              ))}
+            </div>
+          ) : (
+            <div className="bar-list">
+              {analytics.topTopics.map((item) => <div key={item.label}><span className="capitalize">{item.label}</span><div><i style={{ width: `${item.percentage}%` }} /></div><strong>{item.percentage}%</strong></div>)}
+              {analytics.topTopics.length === 0 ? <p className="empty-state">Topics appear once golfers start chatting.</p> : null}
+            </div>
+          )}
         </article>
         <article className="panel next-step-panel">
           <p className="eyebrow">Widget status</p>

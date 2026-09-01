@@ -148,7 +148,7 @@ export function ServiceManager({ services }: { services: Service[] }) {
               <label className="span-two">Service name<input maxLength={120} onChange={(event) => set("name", event.target.value)} required value={form.name} placeholder="60-Minute Private Lesson" /></label>
               <label className="span-two">Description<textarea maxLength={600} minLength={10} onChange={(event) => set("description", event.target.value)} required rows={3} value={form.description} placeholder="What the golfer gets and who it's for." /></label>
               <label>Price (USD)<input inputMode="decimal" onChange={(event) => set("price", event.target.value)} value={form.price} placeholder="79" /></label>
-              <label>Price label (optional)<input maxLength={60} onChange={(event) => set("priceLabel", event.target.value)} value={form.priceLabel} placeholder="From $79 / month" /></label>
+              <label>Price label (optional)<input maxLength={60} onChange={(event) => set("priceLabel", event.target.value)} value={form.priceLabel} placeholder="From $___ / month" /></label>
               <label>Duration (minutes)<input inputMode="numeric" onChange={(event) => set("durationMinutes", event.target.value)} value={form.durationMinutes} placeholder="60" /></label>
               <label>Format
                 <select onChange={(event) => set("mode", event.target.value as Service["mode"])} value={form.mode}>

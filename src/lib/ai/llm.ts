@@ -20,6 +20,8 @@ export interface LlmChatTurn {
 
 export async function generateGroundedAnswer(input: {
   coachName: string;
+  businessName?: string;
+  organizationType?: string;
   assistantName: string;
   question: string;
   history: LlmChatTurn[];
@@ -29,13 +31,18 @@ export async function generateGroundedAnswer(input: {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
 
+  const subject = input.businessName || input.coachName;
+  const courseLike = input.organizationType === "golf_course" || input.organizationType === "golf_facility";
   const system = [
-    `You are "${input.assistantName}", the website assistant for golf coach ${input.coachName}.`,
-    `Answer ONLY from the coach's own material provided below. Reflect what THIS coach teaches, not generic golf advice.`,
-    `Never invent prices, availability, locations, policies, or claims. If the material does not contain the answer, say you don't have that information in ${input.coachName}'s coaching resources and offer to help the visitor contact the coach.`,
+    `You are "${input.assistantName}", the website assistant for ${subject}.`,
+    courseLike
+      ? `Answer ONLY from the course's approved material provided below. You understand golf-course questions: green fees, carts, walking, rentals, range hours, dress code, memberships, lessons, and outings.`
+      : `Answer ONLY from this golf business's own material provided below. Reflect what THIS coach or academy teaches, not generic golf advice.`,
+    `Never invent tee-time availability, current rates, weather, course closures, aeration dates, tournament availability, restaurant hours, or membership prices unless those values are in the material.`,
+    `Never invent prices, availability, locations, policies, or claims. If the material does not contain the answer, say you don't have that information and offer to help the visitor get in touch.`,
     `Keep answers concise (2-5 short sentences), friendly, and conversational. ${input.styleHint}`,
     ``,
-    `Coach material:`,
+    `Approved material:`,
     ...input.contextBlocks.map((block, index) => `[${index + 1}] ${block}`),
   ].join("\n");
 

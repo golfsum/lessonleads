@@ -2,6 +2,7 @@ import "server-only";
 
 import type Stripe from "stripe";
 import type { Plan, Subscription } from "@/lib/domain/types";
+import { isPaidPlanId } from "@/lib/billing/plans";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getStripe, planFromStripePriceId } from "./stripe";
 
@@ -23,7 +24,8 @@ export async function syncStripeSubscription(subscription: Stripe.Subscription, 
   const customerId = typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id;
   const priceId = subscription.items.data[0]?.price?.id;
   const fromPrice = planFromStripePriceId(priceId);
-  const fromMeta = subscription.metadata.plan === "pro" || subscription.metadata.plan === "solo" ? subscription.metadata.plan : null;
+  const metadataPlan = subscription.metadata.plan ?? "";
+  const fromMeta = isPaidPlanId(metadataPlan) ? metadataPlan : null;
   const plan: Plan = canceled ? "free" : fromPrice !== "free" ? fromPrice : fromMeta ?? "solo";
   const { error } = await createSupabaseAdminClient().from("subscriptions").upsert(
     {

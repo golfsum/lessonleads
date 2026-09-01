@@ -1,15 +1,16 @@
 import { z } from "zod";
 import { requireViewer } from "@/lib/auth/session";
 import { saveWidget } from "@/lib/data/workspace";
+import { WIDGET_MENU_ICONS, WIDGET_SECTION_KEYS } from "@/lib/domain/types";
 import { hasTrustedOrigin } from "@/lib/security/request";
 
 const color = z.string().regex(/^#[0-9a-f]{6}$/i);
 
 const menuItem = z.object({
   id: z.string().min(1).max(80),
-  key: z.enum(["ask", "lessons", "videos", "coach", "drills", "resources", "faq", "swing", "contact", "custom"]),
+  key: z.enum(WIDGET_SECTION_KEYS),
   title: z.string().trim().min(1).max(40),
-  icon: z.enum(["chat", "flag", "video", "person", "target", "book", "question", "upload", "mail", "link"]),
+  icon: z.enum(WIDGET_MENU_ICONS),
   enabled: z.boolean(),
   sortOrder: z.number().int().min(0).max(100),
   ctaLabel: z.string().trim().max(60).optional(),
@@ -35,14 +36,26 @@ const theme = z.object({
   coachAvatarUrl: z.union([z.url().max(500), z.literal("")]).optional(),
   assistantAvatarUrl: z.union([z.url().max(500), z.literal("")]).optional(),
   suggestedQuestions: z.array(z.string().trim().min(3).max(160)).max(6).optional(),
+  quickActions: z
+    .array(
+      z.object({
+        id: z.string().min(1).max(80),
+        key: z.enum(["ask", "tee_times", "rates", "membership", "lessons", "swing", "events", "contact"]),
+        label: z.string().trim().min(1).max(40),
+        enabled: z.boolean(),
+        sortOrder: z.number().int().min(0).max(20),
+      }),
+    )
+    .max(8)
+    .optional(),
 });
 
 const schema = z.object({
   theme: theme.optional(),
-  menu: z.array(menuItem).max(12).optional(),
+  menu: z.array(menuItem).max(16).optional(),
   status: z.enum(["draft", "active", "disabled"]).optional(),
   allowedOrigins: z.array(z.string().trim().min(3).max(200)).max(10).optional(),
-  defaultSectionKey: z.enum(["ask", "lessons", "videos", "coach", "drills", "resources", "faq", "swing", "contact", "custom"]).optional(),
+  defaultSectionKey: z.enum(WIDGET_SECTION_KEYS).optional(),
 });
 
 export async function PUT(request: Request) {

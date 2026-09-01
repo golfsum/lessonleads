@@ -18,7 +18,7 @@ const display = Newsreader({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
   title: {
-    default: "LessonLeads | Turn your golf website traffic into booked lessons",
+    default: "LessonLeads | Turn golf website traffic into lessons, tee times, and leads",
     template: "%s | LessonLeads",
   },
   description:
@@ -29,17 +29,17 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "LessonLeads",
-    title: "Turn your golf website traffic into booked lessons",
+    title: "Turn golf website traffic into lessons, tee times, and leads",
     description:
-      "LessonLeads learns from your website and videos, answers golfers' questions, captures qualified leads, and sends them to your booking page.",
+      "LessonLeads learns from your website and videos, answers golfer questions, captures qualified inquiries, and helps visitors book lessons or tee times.",
     url: "/",
     images: [{ url: "/og.png", width: 1200, height: 630, alt: "LessonLeads golf coaching widget and lead capture" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Turn your golf website traffic into booked lessons",
+    title: "Turn golf website traffic into lessons, tee times, and leads",
     description:
-      "An AI widget trained on your coaching content that answers questions, captures leads, and hands off to your booking system.",
+      "An AI widget for golf businesses that answers questions from your content, captures leads, and helps golfers book lessons or tee times.",
     images: ["/og.png"],
   },
   icons: {
