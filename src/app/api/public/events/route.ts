@@ -1,29 +1,12 @@
 import { z } from "zod";
 import { getPublicWidget, recordWidgetEvent } from "@/lib/data/workspace";
+import { clientWidgetEventNameSchema } from "@/lib/security/widget-events";
 import { widgetOriginAllowed } from "@/lib/security/origins";
-
-const eventName = z.enum([
-  "widget_view",
-  "widget_open",
-  "conversation_started",
-  "message_sent",
-  "video_viewed",
-  "service_viewed",
-  "lead_capture_started",
-  "lead_captured",
-  "swing_upload_started",
-  "swing_uploaded",
-  "booking_clicked",
-  "contact_clicked",
-  "tee_time_search",
-  "tee_time_result_viewed",
-  "tee_time_booking_clicked",
-]);
 
 const schema = z.object({
   coachId: z.string().min(2).max(100),
   sessionId: z.string().min(8).max(100),
-  name: eventName,
+  name: clientWidgetEventNameSchema,
   conversationId: z.string().max(100).optional(),
   leadId: z.string().max(100).optional(),
   page: z.string().max(500).optional(),

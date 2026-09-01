@@ -16,6 +16,8 @@ function signupUrl() {
 const LOGO_PATH = "/logo.jpg";
 
 const now = "2026-08-26T00:00:00.000Z";
+const installExample =
+  '<script src="https://lessonleads.com/widget.js" data-coach="YOUR_UNIQUE_WIDGET_ID" async></script>';
 
 function source(id: string, title: string, url: string): KnowledgeSource {
   return {
@@ -163,7 +165,9 @@ export function buildSiteWorkspace(): WorkspaceData {
       "src_site_install",
       "How to install",
       [
-        "After signup you get one script tag. Paste it before the closing body tag on every page where you want the widget, or on a dedicated lessons page.",
+        "When you create a widget, LessonLeads gives it a unique public widget ID tied to your LessonLeads workspace. The data-coach value connects the installed widget to the correct customer workspace.",
+        `Dashboard → Install inserts your ID automatically. A floating-widget script looks like this: ${installExample}`,
+        "Paste the exact snippet from Dashboard → Install before the closing body tag on every page where you want the widget, or on a dedicated lessons page.",
         "The default is a floating button. You can also embed the widget inline.",
         "You can add your site logo in onboarding and in dashboard widget setup so the header matches your academy branding.",
         "Allowed domains can lock the widget to your site. Localhost is always allowed for testing.",
@@ -195,7 +199,11 @@ export function buildSiteWorkspace(): WorkspaceData {
     faq(
       "faq_site_install",
       "How do I put it on my site?",
-      "Sign up, connect your website, customize the widget, then paste one script tag. It works on WordPress, Squarespace, Wix, Webflow, and custom sites.",
+      [
+        "When you create your widget, LessonLeads gives it a unique public widget ID tied to your LessonLeads workspace. The data-coach value connects the installed widget to the correct customer workspace, and Dashboard → Install inserts your ID automatically.",
+        `Your floating-widget code looks like this:\n\n${installExample}`,
+        "Your actual ID replaces YOUR_UNIQUE_WIDGET_ID. Paste the exact snippet from Dashboard → Install before the closing body tag or into your platform's footer/custom-code area. It works on WordPress, Squarespace, Wix, Webflow, and custom sites.",
+      ].join("\n\n"),
       3,
     ),
     faq(

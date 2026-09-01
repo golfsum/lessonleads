@@ -68,6 +68,14 @@ function isProductAssistant(coach: PublicCoach) {
   return coach.name.trim().toLowerCase() === coach.businessName.trim().toLowerCase();
 }
 
+function productSuggestedReplies(input: EngineInput, limit: number): string[] {
+  const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const currentQuestion = normalize(input.message);
+  return input.suggestedQuestions
+    .filter((question) => normalize(question) !== currentQuestion)
+    .slice(0, limit);
+}
+
 function aboutSubject(coach: PublicCoach, type: OrganizationType): string {
   if (isProductAssistant(coach)) return coach.name;
   if (isCourseLike(type)) return coach.businessName;
@@ -476,6 +484,13 @@ export async function respond(input: EngineInput): Promise<EngineResult> {
       prompt: capturePrompt(kind, who, video && video.kind === "video" ? ({ id: video.contentId } as ContentItem) : null, input.organizationType),
       leadType: leadTypeForIntent(kind),
     });
+  }
+
+  // LessonLeads' own support widget shares the coaching engine, but its
+  // follow-ups must stay product-specific. Client widgets keep their normal
+  // golf and lesson prompts.
+  if (isProductAssistant(input.coach) && suggestedReplies.length > 0) {
+    suggestedReplies = productSuggestedReplies(input, suggestedReplies.length);
   }
 
   return { content, cards, sources, suggestedReplies, profileUpdates, intentScore, recommendedServiceId, analytics };

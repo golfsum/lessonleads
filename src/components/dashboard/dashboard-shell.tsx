@@ -12,6 +12,7 @@ import {
   Gauge,
   Inbox,
   Library,
+  LifeBuoy,
   LogOut,
   MessagesSquare,
   Plug,
@@ -53,6 +54,7 @@ export function DashboardShell({
         { href: "/dashboard/integrations", label: "Integrations", icon: Plug },
         { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
         { href: "/dashboard/install", label: "Install", icon: Code2 },
+        { href: "/dashboard/support", label: "Support", icon: LifeBuoy },
         { href: "/dashboard/settings", label: "Settings", icon: Settings },
       ]
     : [
@@ -67,6 +69,7 @@ export function DashboardShell({
         { href: "/dashboard/integrations", label: "Integrations", icon: Plug },
         { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
         { href: "/dashboard/install", label: "Install", icon: Code2 },
+        { href: "/dashboard/support", label: "Support", icon: LifeBuoy },
         { href: "/dashboard/settings", label: "Settings", icon: Settings },
       ];
   const active = navigation.find((item) => item.href === pathname || (item.href !== "/dashboard" && pathname.startsWith(item.href)));

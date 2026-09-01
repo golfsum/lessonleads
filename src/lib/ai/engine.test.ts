@@ -44,6 +44,13 @@ function siteInput(message: string): EngineInput {
   };
 }
 
+const siteQuestions = [
+  "How does LessonLeads work?",
+  "What's included on each plan?",
+  "Will it work with Calendly or CoachNow?",
+  "How do I put this on my site?",
+];
+
 describe("LessonLeads widget defaults", () => {
   beforeEach(() => {
     vi.stubEnv("OPENAI_API_KEY", "");
@@ -53,19 +60,55 @@ describe("LessonLeads widget defaults", () => {
     vi.unstubAllEnvs();
   });
 
-  it.each([
-    "How does LessonLeads work?",
-    "What's included on each plan?",
-    "Will it work with Calendly or CoachNow?",
-    "How do I put this on my site?",
-  ])("answers the default question: %s", async (question) => {
+  it.each(siteQuestions)("answers the default question: %s", async (question) => {
     const result = await respond(siteInput(question));
 
     expect(result.content).not.toContain("I don't see that in LessonLeads yet");
     expect(result.content.trim()).not.toHaveLength(0);
   });
 
-  it("answers plan inclusions from the configured services in price order", async () => {
+  it("shows the unique widget ID in the installation example", async () => {
+    const result = await respond(siteInput("How do I put this on my site?"));
+
+    expect(result.content).toContain("unique public widget ID tied to your LessonLeads workspace");
+    expect(result.content).toContain(
+      '<script src="https://lessonleads.com/widget.js" data-coach="YOUR_UNIQUE_WIDGET_ID" async></script>',
+    );
+    expect(result.content).toContain("Your actual ID replaces YOUR_UNIQUE_WIDGET_ID");
+  });
+
+  it.each(siteQuestions)("keeps follow-up questions product-specific after: %s", async (question) => {
+    const result = await respond(siteInput(question));
+
+    expect(result.suggestedReplies).not.toContain(question);
+    expect(result.suggestedReplies.every((reply) => siteQuestions.includes(reply))).toBe(true);
+    expect(result.suggestedReplies.join(" ")).not.toMatch(/\b(?:lesson|swing|online coaching)\b/i);
+  });
+
+  it("preserves golf follow-ups for client coach widgets", async () => {
+    const input = siteInput("Do you offer junior lessons?");
+    input.coach = {
+      ...input.coach,
+      name: "Mike Doran",
+      businessName: "Coach Mike Golf",
+    };
+    input.faqs = [
+      {
+        id: "faq_client_juniors",
+        organizationId: "org_client",
+        question: "Do you offer junior lessons?",
+        answer: "Yes. Mike offers junior lessons.",
+        enabled: true,
+        sortOrder: 0,
+      },
+    ];
+
+    const result = await respond(input);
+
+    expect(result.suggestedReplies).toEqual(["Which lesson is right for me?", "Can I upload my swing?"]);
+  });
+
+  it("answers plan inclusions in ascending price order", async () => {
     const result = await respond(siteInput("What's included on each plan?"));
 
     expect(result.content).toContain("Free");

@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { User } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { isDemoMode } from "@/lib/demo/store";
@@ -54,9 +55,64 @@ export async function requireViewer() {
   return viewer;
 }
 
+function internalAdminEmailAllowed(email: string | null | undefined) {
+  if (!email) return false;
+  const allowed = (process.env.INTERNAL_ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((candidate) => candidate.trim().toLowerCase())
+    .filter(Boolean);
+  return allowed.includes(email.trim().toLowerCase());
+}
+
+export interface InternalAdminViewer {
+  id: string;
+  email: string;
+  name: string;
+}
+
+async function getInternalAdminViewer(): Promise<InternalAdminViewer | null> {
+  if (isDemoMode()) return null;
+  try {
+    const supabase = await createSupabaseServerClient();
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
+    if (error || !user || !internalAdminEmailAllowed(user.email)) return null;
+    return {
+      id: user.id,
+      email: user.email ?? "",
+      name: String(user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "Admin"),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A fail-closed check for API handlers and server-side data access.
+ * This deliberately verifies the Supabase user directly instead of calling
+ * getViewer(), which can provision a customer workspace for a new account.
+ */
+export async function hasInternalAdminSession(): Promise<boolean> {
+  return Boolean(await getInternalAdminViewer());
+}
+
 export async function requireAdmin() {
-  const viewer = await requireViewer();
-  const allowed = (process.env.INTERNAL_ADMIN_EMAILS ?? "").split(",").map((email) => email.trim().toLowerCase()).filter(Boolean);
-  if (!viewer.demo && !allowed.includes(viewer.email.toLowerCase())) redirect("/dashboard");
-  return viewer;
+  if (isDemoMode()) redirect("/dashboard");
+  let user: User | null = null;
+  try {
+    const supabase = await createSupabaseServerClient();
+    const result = await supabase.auth.getUser();
+    if (!result.error) user = result.data.user;
+  } catch {
+    user = null;
+  }
+  if (!user) redirect("/login");
+  if (!internalAdminEmailAllowed(user.email)) redirect("/dashboard");
+  return {
+    id: user.id,
+    email: user.email ?? "",
+    name: String(user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "Admin"),
+  } satisfies InternalAdminViewer;
 }

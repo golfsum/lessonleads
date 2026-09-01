@@ -4,6 +4,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { toPublicWidget } from "@/lib/data/mappers";
 import { intentLevelForScore, type ChatMessage, type Conversation, type Lead, type PublicWidget, type WidgetEvent, type WidgetEventName } from "@/lib/domain/types";
 import type { ChatContext } from "@/lib/demo/store";
+import { recordPlatformEvent } from "@/lib/platform/analytics";
 import { buildSiteWorkspace } from "./data";
 import { isSiteWidgetPublicId, SITE_CONVERSATION_PREFIX, SITE_ORG_ID, SITE_WIDGET_ID } from "./ids";
 
@@ -189,6 +190,17 @@ export async function captureSiteLead(input: {
     occurredAt: now,
     properties: { fingerprint: input.fingerprint },
   });
+  try {
+    await recordPlatformEvent({
+      eventName: "support_lead_captured",
+      visitorId: input.visitorId,
+      sessionId: input.sessionId,
+      idempotencyKey: `support-lead:${input.idempotencyKey}`.slice(0, 200),
+      properties: { hasConversation: Boolean(conversation) },
+    });
+  } catch {
+    // Contact capture must still succeed if operational analytics is unavailable.
+  }
   return { lead, duplicate: false as const };
 }
 
@@ -224,6 +236,22 @@ export async function recordSiteEvent(input: {
     ...input,
   };
   mem.events.push(event);
+  if (input.properties?.preview !== true) {
+    try {
+      await recordPlatformEvent({
+        eventName: `support_${input.name}`,
+        visitorId: input.sessionId,
+        sessionId: input.sessionId,
+        idempotencyKey: `support:${event.id}`,
+        properties: {
+          conversationId: input.conversationId ?? null,
+          leadId: input.leadId ?? null,
+        },
+      });
+    } catch {
+      // Durable analytics must not break the public support widget.
+    }
+  }
   return event;
 }
 
