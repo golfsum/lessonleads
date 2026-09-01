@@ -918,6 +918,18 @@ export const recordSupabaseEvent: Mirror<typeof recordDemoEvent> = async (input)
     })
     .select("*")
     .single();
+  if (error?.code === "23505" && oncePerSession.includes(input.name)) {
+    const { data: existing, error: existingError } = await client
+      .from("widget_events")
+      .select("*")
+      .eq("widget_id", input.widgetId)
+      .eq("event_name", input.name)
+      .eq("session_id", input.sessionId)
+      .limit(1)
+      .maybeSingle();
+    throwIf(existingError, "event duplicate lookup");
+    if (existing) return mapEvent(existing);
+  }
   throwIf(error, "event");
   if (input.name === "booking_clicked" && input.leadId) {
     const { data: lead } = await client.from("leads").select("*").eq("id", input.leadId).eq("organization_id", widget.organization_id).maybeSingle();

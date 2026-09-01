@@ -911,6 +911,32 @@ a:focus-visible {
 .panel-copy { color: var(--muted); font-size: 12px; line-height: 1.55; margin: 0 0 10px; }
 .panel-copy.muted { font-size: 11px; }
 .panel-copy a, .install-note a { color: var(--green); font-weight: 700; }
+.support-layout { align-items: start; display: grid; gap: 18px; grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr); }
+.support-form, .ticket-reply { display: grid; gap: 15px; }
+.support-form .field-grid { gap: 14px; }
+.support-form textarea, .ticket-reply textarea { background: white; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); font: inherit; font-size: 12px; line-height: 1.55; padding: 11px; resize: vertical; width: 100%; }
+.support-form .button, .ticket-reply .button { justify-self: start; }
+.ticket-list { display: grid; }
+.ticket-list > a { align-items: center; border-top: 1px solid #eceeeb; color: inherit; display: flex; gap: 14px; justify-content: space-between; min-height: 68px; padding: 10px 0; text-decoration: none; }
+.ticket-list > a:first-child { border-top: 0; }
+.ticket-list > a > div { display: grid; gap: 4px; min-width: 0; }
+.ticket-list strong { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ticket-list small { color: var(--muted); font-size: 10px; text-transform: capitalize; }
+.ticket-status { border-radius: 99px; display: inline-flex; flex: 0 0 auto; font-size: 9px; font-weight: 800; padding: 5px 9px; text-transform: uppercase; white-space: nowrap; }
+.ticket-status.open { background: #fff0d5; color: #805a14; }
+.ticket-status.in_progress { background: #e6eefb; color: #28558e; }
+.ticket-status.waiting_on_customer { background: #f0eafd; color: #624493; }
+.ticket-status.resolved { background: #e4f2e5; color: #286238; }
+.ticket-status.closed { background: #eceeeb; color: #606961; }
+.ticket-thread { display: grid; gap: 16px; }
+.ticket-thread article { border: 1px solid var(--line); border-radius: 10px; display: grid; gap: 8px; max-width: 82%; padding: 14px 16px; }
+.ticket-thread article.customer { background: #eef4ed; justify-self: end; }
+.ticket-thread article.admin, .ticket-thread article.system { background: #f7f8f5; justify-self: start; }
+.ticket-thread article > div { align-items: center; display: flex; gap: 12px; justify-content: space-between; }
+.ticket-thread strong { font-size: 11px; }
+.ticket-thread time { color: var(--muted); font-size: 9px; }
+.ticket-thread p { font-size: 12px; line-height: 1.6; margin: 0; white-space: pre-wrap; }
+.ticket-reply > label { font-size: 11px; font-weight: 750; }
 .rate-summary { border-top: 1px solid #eceeeb; display: grid; gap: 8px; grid-template-columns: 1fr 1fr; margin: 16px 0 0; padding-top: 14px; }
 .rate-summary div { display: grid; gap: 3px; }
 .rate-summary dt { color: var(--muted); font-size: 10px; }
@@ -932,6 +958,7 @@ a:focus-visible {
 @media (max-width: 1050px) {
   .widget-builder { grid-template-columns: 1fr; }
   .preview-grid { grid-template-columns: repeat(2, 1fr); }
+  .support-layout { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 760px) {
@@ -942,6 +969,7 @@ a:focus-visible {
   .menu-item-row { grid-template-columns: 22px 1fr 84px 56px auto 24px; }
   .import-row { flex-direction: column; }
   .rate-summary { grid-template-columns: 1fr; }
+  .ticket-thread article { max-width: 94%; }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -953,6 +981,10 @@ a:focus-visible {
   .lead-table-row, .question-list > article, .recent-leads > a, .detail-list > div { border-color: #2b3931; }
   .lead-filters input, .field-grid input, .field-grid textarea, .field-grid select, .rule-list select, .settings-form select { background: #111814; border-color: #35443b; color: #edf2ee; }
   .import-row label, .lead-notes textarea, .menu-item-row > input, .menu-item-row select, .default-section select, .preview-toggle { background: #111814; border-color: #35443b; color: #edf2ee; }
+  .support-form textarea, .ticket-reply textarea { background: #111814; border-color: #35443b; color: #edf2ee; }
+  .ticket-list > a, .ticket-thread article { border-color: #2b3931; }
+  .ticket-thread article.customer { background: #1d2a22; }
+  .ticket-thread article.admin, .ticket-thread article.system { background: #1d2822; }
   .import-row input { color: #edf2ee; }
   .content-row, .source-row, .menu-item-row, .swing-row, .rate-summary { border-color: #2b3931; }
   .transcript-message { border-left-color: #35443b; }

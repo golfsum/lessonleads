@@ -10,6 +10,7 @@ import {
   Gauge,
   Inbox,
   Library,
+  LifeBuoy,
   LogOut,
   MessagesSquare,
   Plug,
@@ -32,6 +33,7 @@ const navigation = [
   { href: "/dashboard/integrations", label: "Integrations", icon: Plug },
   { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/dashboard/install", label: "Install", icon: Code2 },
+  { href: "/dashboard/support", label: "Support", icon: LifeBuoy },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ] as const;
 
